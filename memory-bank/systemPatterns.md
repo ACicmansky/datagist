@@ -1,7 +1,7 @@
 # System Patterns
 
 ## Architecture
-- **Frontend:** Next.js (App Router). Client components for forms, Server Components for data fetching.
+- **Frontend:** Next.js (App Router). Client components for forms, Server Components for data fetching. `proxy.ts` for route protection.
 - **Backend:** Next.js Server Actions for mutations. Supabase Edge Functions for background cron jobs (Report generation).
 - **Database:** PostgreSQL (Supabase).
 - **AI Service:** Google Gemini API (via Vertex AI or AI Studio).

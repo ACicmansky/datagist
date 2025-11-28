@@ -3,7 +3,7 @@
 ## Core Stack
 - **Framework:** Next.js 16+ (App Router)
 - **Language:** TypeScript (Strict mode)
-- **Database/Auth:** Supabase
+- **Database/Auth:** Supabase (using `@supabase/ssr`)
 - **Deployment:** Vercel
 - **AI:** Google Gemini Pro (Latest Model)
 

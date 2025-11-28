@@ -1,11 +1,12 @@
 # Active Context
 
 ## Current Focus
-**Phase 1: Foundation & Architecture**
-We have established the database schema and type definitions. Development tooling is now configured. The next focus is initializing the Next.js application and implementing authentication.
+**Phase 3: Frontend Dashboard & GA4 Integration**
+We have successfully implemented Google OAuth authentication and the foundational Next.js structure. The next focus is building the user dashboard and integrating the Google Analytics Data API.
 
 ## Recent Decisions
 - **Auth:** Use Google OAuth 2.0 via Supabase.
+- **Middleware:** Refactored `middleware.ts` to `proxy.ts` to align with Next.js best practices and avoid conflicts.
 - **Database:** Supabase (PostgreSQL).
 - **Schema Refactoring:**
   - Added Stripe fields (`stripe_customer_id`, `stripe_subscription_id`) to `profiles`.
@@ -18,10 +19,13 @@ We have established the database schema and type definitions. Development toolin
 - **Code Quality:** Biome for linting/formatting. Vitest for testing (Pragmatic TDD).
 
 ## Immediate Next Steps
-1.  Initialize Next.js project with Supabase client.
-2.  Implement Google OAuth Login logic.
+1.  Create Dashboard UI (Layout, Sidebar, Overview).
+2.  Implement "Connect Property" flow (GA4 API).
 3.  Set up Supabase Edge Functions for report generation.
 
 ## Completed
+- **Authentication:** Implemented Google OAuth with offline access (Refresh Token storage).
+- **Middleware:** Implemented route protection using `proxy.ts`.
+- **Next.js Setup:** Initialized project with Supabase SSR client helpers.
 - **Biome Configuration:** Updated to match DataGist Code Style Guide (lineWidth: 100, semicolons: always, trailingCommas: es5).
 - **Testing Setup:** Configured Vitest with `jsdom` and `@/*` alias support. Added `test` script to package.json.
