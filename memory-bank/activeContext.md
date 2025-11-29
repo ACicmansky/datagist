@@ -12,6 +12,12 @@
   - AI analysis using Gemini 2.5 Flash Lite (`src/lib/ai.ts`).
   - Manual report generation Server Action.
   - Dashboard UI with report list and trigger button.
+- **Insight Quality & Email Delivery (Phase 5):**
+  - Enriched GA4 data fetching: Overview, Top Content, Top Sources (parallel requests).
+  - Upgraded AI prompt with "Senior Data Analyst" persona.
+  - HTML output format for email delivery.
+  - Email integration using Resend (`src/lib/email.ts`).
+  - Report email delivery integrated into dashboard actions.
 - **Infrastructure:**
   - `proxy.ts` middleware for route protection and redirects.
   - `src/lib/validations/schemas.ts` for shared Zod schemas.

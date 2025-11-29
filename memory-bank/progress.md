@@ -7,8 +7,9 @@
 - [x] Google Analytics API Integration (Helper functions)
 - [x] GA4 Data Fetching & AI Analysis (Phase 4)
 - [x] Manual Report Generation via Dashboard
-- [ ] Edge Functions for scheduling
-- [ ] Email delivery
+- [x] Enriched GA4 Data (Overview, Top Content, Top Sources)
+- [x] Email delivery (Resend integration)
+- [ ] Edge Functions for automated scheduling
 
 ## Known Issues
 None currently.
