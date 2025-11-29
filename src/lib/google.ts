@@ -1,10 +1,14 @@
 import { google } from "googleapis";
 
 export const getAuthClient = (refreshToken: string) => {
-  const oauth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET
-  );
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error("Missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET environment variables");
+  }
+
+  const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
 
   oauth2Client.setCredentials({
     refresh_token: refreshToken,

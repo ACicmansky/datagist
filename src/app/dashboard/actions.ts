@@ -2,22 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { z } from "zod";
 import { listGA4Properties } from "@/lib/google";
+import type { CreatePropertyInput, ReportSettings } from "@/lib/validations/schemas";
+import { PropertySchema, ReportSettingsSchema } from "@/lib/validations/schemas";
 import { createClient } from "@/utils/supabase/server";
-
-const PropertySchema = z.object({
-  property_id: z.string().min(1, "Property ID is required"),
-  property_name: z.string().min(1, "Property Name is required"),
-  industry: z.string().optional(),
-  website_url: z.string().url().optional().or(z.literal("")),
-});
-
-const SettingsSchema = z.object({
-  frequency: z.enum(["weekly", "monthly"]),
-  complexity_level: z.enum(["simple", "detailed"]),
-  include_recommendations: z.boolean(),
-});
 
 export async function getPropertiesAction() {
   const supabase = await createClient();
@@ -46,15 +34,18 @@ export async function getPropertiesAction() {
   try {
     const properties = await listGA4Properties(profile.google_refresh_token);
     return { data: properties };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Failed to list GA4 properties:", error);
+    if (error.response) {
+      console.error("Error Response Data:", JSON.stringify(error.response.data, null, 2));
+    }
     return { error: "Failed to fetch properties from Google Analytics." };
   }
 }
 
 export async function savePropertyConfiguration(
-  propertyData: z.infer<typeof PropertySchema>,
-  settingsData: z.infer<typeof SettingsSchema>
+  propertyData: CreatePropertyInput,
+  settingsData: ReportSettings
 ) {
   const supabase = await createClient();
   const {
@@ -67,14 +58,14 @@ export async function savePropertyConfiguration(
 
   // Validate inputs
   const propertyValidation = PropertySchema.safeParse(propertyData);
-  const settingsValidation = SettingsSchema.safeParse(settingsData);
+  const settingsValidation = ReportSettingsSchema.safeParse(settingsData);
 
   if (!propertyValidation.success || !settingsValidation.success) {
     return { error: "Invalid input data." };
   }
 
-  const { property_id, property_name, industry, website_url } = propertyValidation.data;
-  const { frequency, complexity_level, include_recommendations } = settingsValidation.data;
+  const { ga_property_id, property_name, industry, website_url } = propertyValidation.data;
+  const { frequency_days, complexity_level, include_recommendations } = settingsValidation.data;
 
   // 1. Save Property
   const { data: property, error: propertyError } = await supabase
@@ -82,14 +73,14 @@ export async function savePropertyConfiguration(
     .upsert(
       {
         user_id: user.id,
-        property_id,
+        ga_property_id,
         property_name,
         industry,
         website_url: website_url || null,
       },
-      { onConflict: "user_id, property_id" } // Assuming user can have multiple properties, but unique by ID
+      { onConflict: "user_id, ga_property_id" } // Assuming user can have multiple properties, but unique by ID
     )
-    .select()
+    .select("id")
     .single();
 
   if (propertyError) {
@@ -102,18 +93,20 @@ export async function savePropertyConfiguration(
   // Schema says report_settings has property_id FK.
   const { error: settingsError } = await supabase.from("report_settings").upsert(
     {
-      user_id: user.id,
       property_id: property.id, // Internal DB ID
-      frequency,
+      frequency_days,
       complexity_level,
       include_recommendations,
       is_active: true,
+      // Reset the schedule when settings change
+      next_send_at: new Date().toISOString(),
     },
     { onConflict: "property_id" }
   );
 
   if (settingsError) {
     console.error("Error saving settings:", settingsError);
+    await supabase.from("properties").delete().eq("id", property.id);
     return { error: "Failed to save settings." };
   }
 

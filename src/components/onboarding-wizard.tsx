@@ -1,9 +1,8 @@
-'use client';
+"use client";
 
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { getPropertiesAction, savePropertyConfiguration } from '@/app/dashboard/actions';
-
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { getPropertiesAction, savePropertyConfiguration } from "@/app/dashboard/actions";
 
 interface Property {
   name: string;
@@ -17,9 +16,9 @@ export function OnboardingWizard() {
   const [saving, setSaving] = useState(false);
   const router = useRouter();
 
-  const [selectedPropertyId, setSelectedPropertyId] = useState('');
-  const [frequency, setFrequency] = useState<'weekly' | 'monthly'>('weekly');
-  const [complexity, setComplexity] = useState<'simple' | 'detailed'>('simple');
+  const [selectedPropertyId, setSelectedPropertyId] = useState("");
+  const [frequency, setFrequency] = useState<"weekly" | "monthly">("weekly");
+  const [complexity, setComplexity] = useState<"simple" | "detailed">("simple");
   const [includeRecommendations, setIncludeRecommendations] = useState(true);
 
   useEffect(() => {
@@ -35,7 +34,7 @@ export function OnboardingWizard() {
           }
         }
       } catch {
-        setError('An unexpected error occurred while fetching properties.');
+        setError("An unexpected error occurred while fetching properties.");
       } finally {
         setLoading(false);
       }
@@ -59,7 +58,7 @@ export function OnboardingWizard() {
         {
           property_id: selectedProp.id,
           property_name: selectedProp.name,
-          website_url: '', // We don't have this from listGA4Properties yet, maybe add input later
+          website_url: "", // We don't have this from listGA4Properties yet, maybe add input later
         },
         {
           frequency,
@@ -76,7 +75,7 @@ export function OnboardingWizard() {
         router.refresh();
       }
     } catch {
-      setError('Failed to save configuration.');
+      setError("Failed to save configuration.");
     } finally {
       setSaving(false);
     }
@@ -102,13 +101,13 @@ export function OnboardingWizard() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md">
+    <div className="max-w-2xl mx-auto p-6 bg-white text-gray-700 rounded-lg shadow-md">
       <h1 className="text-2xl font-bold mb-6">Connect Your Analytics</h1>
-      
+
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Property Selection */}
         <div>
-          <label htmlFor="property" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="property" className="block text-sm font-medium mb-1">
             Select GA4 Property
           </label>
           <select
@@ -118,7 +117,9 @@ export function OnboardingWizard() {
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           >
-            <option value="" disabled>Select a property...</option>
+            <option value="" disabled>
+              Select a property...
+            </option>
             {properties.map((prop) => (
               <option key={prop.id} value={prop.id}>
                 {prop.name} ({prop.id})
@@ -129,14 +130,14 @@ export function OnboardingWizard() {
 
         {/* Frequency */}
         <fieldset>
-          <legend className="block text-sm font-medium text-gray-700 mb-1">Report Frequency</legend>
+          <legend className="block text-sm font-medium mb-1">Report Frequency</legend>
           <div className="flex space-x-4">
             <label className="flex items-center">
               <input
                 type="radio"
                 value="weekly"
-                checked={frequency === 'weekly'}
-                onChange={(e) => setFrequency(e.target.value as 'weekly')}
+                checked={frequency === "weekly"}
+                onChange={(e) => setFrequency(e.target.value as "weekly")}
                 className="mr-2"
               />
               Weekly
@@ -145,8 +146,8 @@ export function OnboardingWizard() {
               <input
                 type="radio"
                 value="monthly"
-                checked={frequency === 'monthly'}
-                onChange={(e) => setFrequency(e.target.value as 'monthly')}
+                checked={frequency === "monthly"}
+                onChange={(e) => setFrequency(e.target.value as "monthly")}
                 className="mr-2"
               />
               Monthly
@@ -156,14 +157,14 @@ export function OnboardingWizard() {
 
         {/* Complexity */}
         <fieldset>
-          <legend className="block text-sm font-medium text-gray-700 mb-1">Report Detail Level</legend>
+          <legend className="block text-sm font-medium mb-1">Report Detail Level</legend>
           <div className="flex space-x-4">
             <label className="flex items-center">
               <input
                 type="radio"
                 value="simple"
-                checked={complexity === 'simple'}
-                onChange={(e) => setComplexity(e.target.value as 'simple')}
+                checked={complexity === "simple"}
+                onChange={(e) => setComplexity(e.target.value as "simple")}
                 className="mr-2"
               />
               Simple (Key Metrics)
@@ -172,8 +173,8 @@ export function OnboardingWizard() {
               <input
                 type="radio"
                 value="detailed"
-                checked={complexity === 'detailed'}
-                onChange={(e) => setComplexity(e.target.value as 'detailed')}
+                checked={complexity === "detailed"}
+                onChange={(e) => setComplexity(e.target.value as "detailed")}
                 className="mr-2"
               />
               Detailed (Deep Dive)
@@ -200,7 +201,7 @@ export function OnboardingWizard() {
           disabled={saving || !selectedPropertyId}
           className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
         >
-          {saving ? 'Saving...' : 'Save Configuration'}
+          {saving ? "Saving..." : "Save Configuration"}
         </button>
       </form>
     </div>

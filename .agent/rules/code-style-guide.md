@@ -56,7 +56,7 @@ export const DashboardPage: FC<DashboardProps> = async ({ userId }) => {
 
 ## 5. State Management & Data Fetching
 - **Server Actions:** Use strictly for mutations (POST/PUT/DELETE).
-- **Zod Validation:** All Server Actions must validate input using Zod schemas defined in `@/lib/validations`.
+- **Zod Validation:** All Server Actions must validate input using Zod schemas defined in `@/lib/validations/`.
 - **Database:** Use the Supabase typed client.
   - *Bad:* `supabase.from('users').select('*')`
   - *Good:* `supabase.from('users').select('id, email, full_name')` (Select only what is needed).
