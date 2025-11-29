@@ -115,3 +115,82 @@ export async function savePropertyConfiguration(
   revalidatePath("/dashboard");
   return { success: true };
 }
+
+import { generateInsight } from "@/lib/ai";
+import { fetchReportData } from "@/lib/ga4";
+
+export async function generateManualReport(propertyId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  // 1. Fetch Property & Profile (for Refresh Token)
+  const { data: property, error: propertyError } = await supabase
+    .from("properties")
+    .select("id, ga_property_id, property_name")
+    .eq("id", propertyId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (propertyError || !property) {
+    return { error: "Property not found." };
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("google_refresh_token, subscription_tier")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile?.google_refresh_token) {
+    return { error: "No Google account connected." };
+  }
+
+  try {
+    // 2. Fetch GA4 Data
+    const metrics = await fetchReportData(profile.google_refresh_token, property.ga_property_id);
+
+    // 3. Generate AI Insight
+    // Determine plan level (default to 'free' if not found)
+    const planLevel = profile.subscription_tier || "free";
+    const insight = await generateInsight(metrics, planLevel);
+
+    // 4. Generate HTML Summary (Simple version for now)
+    const htmlSummary = `
+      <h1>${insight.summary}</h1>
+      <p><strong>Top Source:</strong> ${insight.top_source}</p>
+      <h3>Recommendations:</h3>
+      <ul>
+        ${insight.recommendations.map((r) => `<li>${r}</li>`).join("")}
+      </ul>
+    `;
+
+    // 5. Save to Database
+    const { error: insertError } = await supabase.from("reports").insert({
+      property_id: property.id,
+      user_id: user.id,
+      ai_summary_html: htmlSummary,
+      metrics_snapshot: {
+        metrics,
+        insight,
+      },
+      status: "generated",
+    });
+
+    if (insertError) {
+      console.error("Error saving report:", insertError);
+      return { error: "Failed to save report." };
+    }
+
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error generating report:", error);
+    return { error: error.message || "Failed to generate report." };
+  }
+}
