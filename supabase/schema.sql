@@ -25,7 +25,8 @@ create table public.properties (
   property_name text not null,
   website_url text, -- Used for AI Grounding
   industry text, -- Optional context for AI
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  unique(user_id, ga_property_id)
 );
 
 -- 3. REPORT SETTINGS (Configuration per property)
