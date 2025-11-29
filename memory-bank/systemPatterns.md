@@ -24,4 +24,4 @@
 ## Development Patterns
 - **Schema-First:** DB Schema -> Types/Zod -> Code.
 - **Type Safety:** Strict TypeScript usage.
-- **Validation:** Zod for all form inputs and API responses.
+- **Validation:** Zod for all form inputs and API responses. Centralized in `src/lib/validations/schemas.ts`.
