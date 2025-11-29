@@ -1,7 +1,7 @@
 # 2025-11-29: Property Onboarding and Auth UI
 
 ## Summary
-Successfully implemented Phase 3 (Property Onboarding) and Phase 4 (Authentication UI). The application now allows users to sign in with Google, land on a dashboard, and configure their Google Analytics 4 property for reporting.
+Successfully implemented Phase 3 (Property Onboarding) and finished forgot part of Phase 2 (Authentication UI). The application now allows users to sign in with Google, land on a dashboard, and configure their Google Analytics 4 property for reporting.
 
 ## Key Changes
 1.  **Authentication UI:**

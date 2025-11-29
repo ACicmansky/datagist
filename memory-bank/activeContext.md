@@ -1,8 +1,8 @@
 # Active Context
 
 ## Current Focus
-**Phase 5: Report Generation & Edge Functions**
-We have completed the Property Onboarding (Phase 3) and Authentication UI (Phase 4). The next major focus is setting up the Supabase Edge Functions to automate the report generation process using the Google Analytics Data API and Gemini.
+**Phase 4: Report Generation & Edge Functions**
+We have completed the Property Onboarding (Phase 3) and Authentication UI (Phase 2 finish). The next major focus is setting up the Supabase Edge Functions to automate the report generation process using the Google Analytics Data API and Gemini.
 
 ## Recent Decisions
 - **Validation:** Centralized all Zod schemas in `src/lib/validations/schemas.ts` to share types between client and server.
