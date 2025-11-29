@@ -34,10 +34,14 @@ export async function getPropertiesAction() {
   try {
     const properties = await listGA4Properties(profile.google_refresh_token);
     return { data: properties };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Failed to list GA4 properties:", error);
-    if (error.response) {
-      console.error("Error Response Data:", JSON.stringify(error.response.data, null, 2));
+    if (typeof error === "object" && error !== null && "response" in error) {
+      const errorWithResponse = error as { response?: { data?: unknown } };
+      console.error(
+        "Error Response Data:",
+        JSON.stringify(errorWithResponse.response?.data, null, 2)
+      );
     }
     return { error: "Failed to fetch properties from Google Analytics." };
   }
@@ -191,8 +195,8 @@ export async function generateManualReport(propertyId: string) {
 
     revalidatePath("/dashboard");
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error generating report:", error);
-    return { error: error.message || "Failed to generate report." };
+    return { error: error instanceof Error ? error.message : "Failed to generate report." };
   }
 }

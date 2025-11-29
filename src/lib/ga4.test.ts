@@ -5,11 +5,9 @@ import { fetchReportData } from "./ga4";
 // Mock googleapis
 vi.mock("googleapis", () => {
   const setCredentialsMock = vi.fn();
-  const OAuth2 = vi.fn(function () {
-    return {
-      setCredentials: setCredentialsMock,
-    };
-  });
+  const OAuth2 = vi.fn(() => ({
+    setCredentials: setCredentialsMock,
+  }));
 
   const runReportMock = vi.fn();
   const analyticsDataMock = {

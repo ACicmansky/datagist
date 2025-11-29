@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { EnrichedReportData } from "@/lib/ga4";
+import type { CreatePropertyInput, CreateReportSettingsInput } from "@/lib/validations/schemas";
 import { getPropertiesAction, savePropertyConfiguration } from "./actions";
 
 // Mock dependencies
@@ -19,7 +21,7 @@ const mockSupabase = {
   auth: {
     getUser: vi.fn(),
   },
-  from: vi.fn(() => ({
+  from: vi.fn((_table: string) => ({
     select: vi.fn(() => ({
       eq: vi.fn(() => ({
         single: vi.fn(),
@@ -81,8 +83,21 @@ describe("Server Actions", () => {
           single: vi.fn().mockResolvedValue({ data: null, error: null }),
         }),
       });
-      // biome-ignore lint/suspicious/noExplicitAny: Mocking complex chain
-      mockSupabase.from.mockReturnValue({ select: mockSelect } as any);
+      const mockUpsert = vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          single: vi.fn(),
+        }),
+      });
+      const mockInsert = vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          single: vi.fn(),
+        }),
+      });
+      mockSupabase.from.mockReturnValue({
+        select: mockSelect,
+        upsert: mockUpsert,
+        insert: mockInsert,
+      });
 
       const result = await getPropertiesAction();
       expect(result).toEqual({ error: "No Google account connected. Please reconnect." });
@@ -94,10 +109,12 @@ describe("Server Actions", () => {
       mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "user1" } } });
 
       const result = await savePropertyConfiguration(
-        // @ts-ignore
-        { property_id: "", property_name: "" }, // Invalid
-        // @ts-ignore
-        { frequency: "weekly", complexity_level: "simple", include_recommendations: true }
+        { property_id: "", property_name: "" } as unknown as CreatePropertyInput,
+        {
+          frequency: "weekly",
+          complexity_level: "simple",
+          include_recommendations: true,
+        } as unknown as CreateReportSettingsInput
       );
 
       expect(result).toEqual({ error: expect.stringContaining("Invalid input data") });
@@ -137,18 +154,19 @@ describe("Server Actions", () => {
       });
 
       // Mock insert
-      const mockInsert = vi.fn().mockResolvedValue({ error: null });
+      const mockInsertFn = vi.fn().mockResolvedValue({ error: null });
 
-      // biome-ignore lint/suspicious/noExplicitAny: Mocking complex chain
-      mockSupabase.from.mockImplementation((table: string) => {
-        if (table === "properties") return { select: mockSelectProperty } as any;
-        if (table === "profiles") return { select: mockSelectProfile } as any;
-        if (table === "reports") return { insert: mockInsert } as any;
-        return {} as any;
+      mockSupabase.from.mockImplementation((_table: string) => {
+        if (_table === "properties")
+          return { select: mockSelectProperty, upsert: vi.fn(), insert: vi.fn() };
+        if (_table === "profiles")
+          return { select: mockSelectProfile, upsert: vi.fn(), insert: vi.fn() };
+        if (_table === "reports") return { insert: mockInsertFn, select: vi.fn(), upsert: vi.fn() };
+        return { select: vi.fn(), upsert: vi.fn(), insert: vi.fn() };
       });
 
-      (fetchReportData as any).mockResolvedValue({ overview: {} });
-      (generateInsight as any).mockResolvedValue("<html>Report</html>");
+      vi.mocked(fetchReportData).mockResolvedValue({ overview: {} } as EnrichedReportData);
+      vi.mocked(generateInsight).mockResolvedValue("<html>Report</html>");
 
       const result = await generateManualReport("prop1");
 
@@ -156,7 +174,7 @@ describe("Server Actions", () => {
       expect(fetchReportData).toHaveBeenCalledWith("refresh1", "ga1");
       expect(generateInsight).toHaveBeenCalledWith({ overview: {} }, "pro");
       expect(sendReportEmail).toHaveBeenCalledWith("test@example.com", "<html>Report</html>");
-      expect(mockInsert).toHaveBeenCalledWith(
+      expect(mockInsertFn).toHaveBeenCalledWith(
         expect.objectContaining({
           status: "generated",
           ai_summary_html: "<html>Report</html>",

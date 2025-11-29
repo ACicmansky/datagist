@@ -5,13 +5,11 @@ import { generateInsight } from "./ai";
 // Mock @google/genai
 vi.mock("@google/genai", () => {
   const generateContentMock = vi.fn();
-  const GoogleGenAI = vi.fn(function () {
-    return {
-      models: {
-        generateContent: generateContentMock,
-      },
-    };
-  });
+  const GoogleGenAI = vi.fn(() => ({
+    models: {
+      generateContent: generateContentMock,
+    },
+  }));
 
   return {
     GoogleGenAI,
