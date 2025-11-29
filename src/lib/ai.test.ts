@@ -1,11 +1,11 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { generateInsight } from "./ai";
 
 // Mock @google/genai
 vi.mock("@google/genai", () => {
   const generateContentMock = vi.fn();
-  const GoogleGenAI = vi.fn(() => {
+  const GoogleGenAI = vi.fn(function () {
     return {
       models: {
         generateContent: generateContentMock,
@@ -29,67 +29,53 @@ describe("AI Analyst", () => {
     process.env.GEMINI_API_KEY = "test-api-key";
   });
 
-  it("generateInsight should call Gemini with correct config", async () => {
+  it("generateInsight should call Gemini with correct config and return HTML", async () => {
     const ai = new GoogleGenAI({ apiKey: "test" });
     const generateContentMock = ai.models.generateContent as unknown as ReturnType<typeof vi.fn>;
 
-    const mockResponseText = JSON.stringify({
-      summary: "Performance is good.",
-      top_source: "Organic Search",
-      recommendations: ["Do this", "Do that"],
-    });
+    const mockResponseText = "<h2>Executive Summary</h2><p>Good job.</p>";
 
     generateContentMock.mockResolvedValue({
       text: mockResponseText,
     });
 
     const metricsData = {
-      totals: {
-        activeUsers: 100,
-        sessions: 50,
-        screenPageViews: 200,
-        engagementRate: 0.75,
-      },
-      rows: [],
+      overview: { activeUsers: 100, sessions: 120, bounceRate: 0.5 },
+      top_content: [],
+      sources: [],
     };
 
-    await generateInsight(metricsData, "pro");
+    const result = await generateInsight(metricsData, "pro");
 
     const callArgs = generateContentMock.mock.calls[0][0];
     expect(callArgs.model).toBe("gemini-2.5-flash-lite");
     expect(callArgs.contents).toContain("Analyze this Google Analytics 4 data");
-    expect(callArgs.config.systemInstruction).toContain("You are a web analytics expert");
-    expect(callArgs.config.responseMimeType).toBe("application/json");
-    expect(callArgs.config.responseSchema.type).toBe(Type.OBJECT);
+    expect(callArgs.config.systemInstruction).toContain("You are a Senior Data Analyst");
+    expect(callArgs.config.responseMimeType).toBeUndefined();
+    expect(callArgs.config.responseSchema).toBeUndefined();
+
+    expect(result).toBe(mockResponseText);
   });
 
-  it("generateInsight should parse JSON response correctly", async () => {
+  it("generateInsight should strip markdown code blocks", async () => {
     const ai = new GoogleGenAI({ apiKey: "test" });
     const generateContentMock = ai.models.generateContent as unknown as ReturnType<typeof vi.fn>;
 
-    const mockData = {
-      summary: "Traffic increased.",
-      top_source: "Direct",
-      recommendations: ["Optimize SEO"],
-    };
+    const mockResponseText = "```html\n<h2>Summary</h2>\n```";
 
     generateContentMock.mockResolvedValue({
-      text: JSON.stringify(mockData),
+      text: mockResponseText,
     });
 
     const result = await generateInsight(
       {
-        totals: {
-          activeUsers: 0,
-          sessions: 0,
-          screenPageViews: 0,
-          engagementRate: 0,
-        },
-        rows: [],
+        overview: { activeUsers: 0, sessions: 0, bounceRate: 0 },
+        top_content: [],
+        sources: [],
       },
       "free"
     );
 
-    expect(result).toEqual(mockData);
+    expect(result).toBe("<h2>Summary</h2>");
   });
 });

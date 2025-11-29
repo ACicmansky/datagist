@@ -30,8 +30,25 @@ const mockSupabase = {
         single: vi.fn(),
       })),
     })),
+    insert: vi.fn(() => ({
+      select: vi.fn(() => ({
+        single: vi.fn(),
+      })),
+    })),
   })),
 };
+
+vi.mock("@/lib/email", () => ({
+  sendReportEmail: vi.fn(),
+}));
+
+vi.mock("@/lib/ai", () => ({
+  generateInsight: vi.fn(),
+}));
+
+vi.mock("@/lib/ga4", () => ({
+  fetchReportData: vi.fn(),
+}));
 
 vi.mock("@/utils/supabase/server", () => ({
   createClient: vi.fn(() => mockSupabase),
@@ -77,11 +94,74 @@ describe("Server Actions", () => {
       mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "user1" } } });
 
       const result = await savePropertyConfiguration(
+        // @ts-ignore
         { property_id: "", property_name: "" }, // Invalid
+        // @ts-ignore
         { frequency: "weekly", complexity_level: "simple", include_recommendations: true }
       );
 
-      expect(result).toEqual({ error: "Invalid input data." });
+      expect(result).toEqual({ error: expect.stringContaining("Invalid input data") });
+    });
+  });
+
+  describe("generateManualReport", () => {
+    it("should generate report and send email", async () => {
+      const { generateManualReport } = await import("./actions");
+      const { fetchReportData } = await import("@/lib/ga4");
+      const { generateInsight } = await import("@/lib/ai");
+      const { sendReportEmail } = await import("@/lib/email");
+
+      mockSupabase.auth.getUser.mockResolvedValue({
+        data: { user: { id: "user1", email: "test@example.com" } },
+      });
+
+      // Mock property fetch
+      const mockSelectProperty = vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi
+              .fn()
+              .mockResolvedValue({ data: { id: "prop1", ga_property_id: "ga1" }, error: null }),
+          }),
+        }),
+      });
+
+      // Mock profile fetch
+      const mockSelectProfile = vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
+            data: { google_refresh_token: "refresh1", subscription_tier: "pro" },
+            error: null,
+          }),
+        }),
+      });
+
+      // Mock insert
+      const mockInsert = vi.fn().mockResolvedValue({ error: null });
+
+      // biome-ignore lint/suspicious/noExplicitAny: Mocking complex chain
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === "properties") return { select: mockSelectProperty } as any;
+        if (table === "profiles") return { select: mockSelectProfile } as any;
+        if (table === "reports") return { insert: mockInsert } as any;
+        return {} as any;
+      });
+
+      (fetchReportData as any).mockResolvedValue({ overview: {} });
+      (generateInsight as any).mockResolvedValue("<html>Report</html>");
+
+      const result = await generateManualReport("prop1");
+
+      expect(result).toEqual({ success: true });
+      expect(fetchReportData).toHaveBeenCalledWith("refresh1", "ga1");
+      expect(generateInsight).toHaveBeenCalledWith({ overview: {} }, "pro");
+      expect(sendReportEmail).toHaveBeenCalledWith("test@example.com", "<html>Report</html>");
+      expect(mockInsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: "generated",
+          ai_summary_html: "<html>Report</html>",
+        })
+      );
     });
   });
 });

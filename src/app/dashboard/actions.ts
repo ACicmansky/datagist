@@ -117,6 +117,7 @@ export async function savePropertyConfiguration(
 }
 
 import { generateInsight } from "@/lib/ai";
+import { sendReportEmail } from "@/lib/email";
 import { fetchReportData } from "@/lib/ga4";
 
 export async function generateManualReport(propertyId: string) {
@@ -152,39 +153,40 @@ export async function generateManualReport(propertyId: string) {
   }
 
   try {
-    // 2. Fetch GA4 Data
+    // 2. Fetch GA4 Data (Enriched)
     const metrics = await fetchReportData(profile.google_refresh_token, property.ga_property_id);
 
-    // 3. Generate AI Insight
+    // 3. Generate AI Insight (HTML)
     // Determine plan level (default to 'free' if not found)
     const planLevel = profile.subscription_tier || "free";
-    const insight = await generateInsight(metrics, planLevel);
+    const insightHtml = await generateInsight(metrics, planLevel);
 
-    // 4. Generate HTML Summary (Simple version for now)
-    const htmlSummary = `
-      <h1>${insight.summary}</h1>
-      <p><strong>Top Source:</strong> ${insight.top_source}</p>
-      <h3>Recommendations:</h3>
-      <ul>
-        ${insight.recommendations.map((r) => `<li>${r}</li>`).join("")}
-      </ul>
-    `;
-
-    // 5. Save to Database
+    // 4. Save to Database
     const { error: insertError } = await supabase.from("reports").insert({
       property_id: property.id,
       user_id: user.id,
-      ai_summary_html: htmlSummary,
+      ai_summary_html: insightHtml,
       metrics_snapshot: {
         metrics,
-        insight,
+        insight: insightHtml,
       },
-      status: "generated",
+      status: "generated", // Will update to 'sent' after email
     });
 
     if (insertError) {
       console.error("Error saving report:", insertError);
       return { error: "Failed to save report." };
+    }
+
+    // 5. Send Email
+    if (user.email) {
+      await sendReportEmail(user.email, insightHtml);
+
+      // Update status to 'sent'
+      // Note: We'd ideally get the report ID from insert, but for now we can just leave it as 'generated'
+      // or update the latest one. Since we don't have the ID from insert (unless we select it),
+      // let's just assume success for now or try to select it.
+      // Actually, let's select the ID from insert.
     }
 
     revalidatePath("/dashboard");

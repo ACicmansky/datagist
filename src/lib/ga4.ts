@@ -1,61 +1,79 @@
 import { google } from "googleapis";
 import { getAuthClient } from "./google";
 
-export interface GA4ReportData {
-  totals: {
+export interface EnrichedReportData {
+  overview: {
     activeUsers: number;
     sessions: number;
-    screenPageViews: number;
-    engagementRate: number;
+    bounceRate: number;
   };
-  rows: {
+  top_content: {
+    pagePath: string;
+    activeUsers: number;
+  }[];
+  sources: {
     channelGroup: string;
     activeUsers: number;
-    sessions: number;
-    screenPageViews: number;
-    engagementRate: number;
   }[];
 }
 
 export const fetchReportData = async (
   refreshToken: string,
   gaPropertyId: string
-): Promise<GA4ReportData> => {
+): Promise<EnrichedReportData> => {
   const auth = getAuthClient(refreshToken);
   const analyticsData = google.analyticsdata({ version: "v1beta", auth });
 
-  const response = await analyticsData.properties.runReport({
-    property: gaPropertyId,
-    requestBody: {
-      dateRanges: [{ startDate: "30daysAgo", endDate: "today" }],
-      dimensions: [{ name: "sessionDefaultChannelGroup" }],
-      metrics: [
-        { name: "activeUsers" },
-        { name: "sessions" },
-        { name: "screenPageViews" },
-        { name: "engagementRate" },
-      ],
-    },
-  });
-
-  const totals = response.data.totals?.[0]?.metricValues;
-  const rows = response.data.rows;
+  const [overviewResponse, topContentResponse, sourcesResponse] = await Promise.all([
+    // 1. Overview Metrics
+    analyticsData.properties.runReport({
+      property: gaPropertyId,
+      requestBody: {
+        dateRanges: [{ startDate: "30daysAgo", endDate: "today" }],
+        metrics: [{ name: "activeUsers" }, { name: "sessions" }, { name: "bounceRate" }],
+      },
+    }),
+    // 2. Top Content
+    analyticsData.properties.runReport({
+      property: gaPropertyId,
+      requestBody: {
+        dateRanges: [{ startDate: "30daysAgo", endDate: "today" }],
+        dimensions: [{ name: "pagePath" }],
+        metrics: [{ name: "activeUsers" }],
+        limit: 5 as any,
+        orderBys: [{ metric: { metricName: "activeUsers" }, desc: true }],
+      },
+    }),
+    // 3. Top Sources
+    analyticsData.properties.runReport({
+      property: gaPropertyId,
+      requestBody: {
+        dateRanges: [{ startDate: "30daysAgo", endDate: "today" }],
+        dimensions: [{ name: "sessionDefaultChannelGroup" }],
+        metrics: [{ name: "activeUsers" }],
+        limit: 5 as any,
+        orderBys: [{ metric: { metricName: "activeUsers" }, desc: true }],
+      },
+    }),
+  ]);
 
   const parseMetric = (value: string | null | undefined) => (value ? Number.parseFloat(value) : 0);
 
+  const overviewTotals = overviewResponse.data.totals?.[0]?.metricValues;
+
   return {
-    totals: {
-      activeUsers: parseMetric(totals?.[0]?.value),
-      sessions: parseMetric(totals?.[1]?.value),
-      screenPageViews: parseMetric(totals?.[2]?.value),
-      engagementRate: parseMetric(totals?.[3]?.value),
+    overview: {
+      activeUsers: parseMetric(overviewTotals?.[0]?.value),
+      sessions: parseMetric(overviewTotals?.[1]?.value),
+      bounceRate: parseMetric(overviewTotals?.[2]?.value),
     },
-    rows: (rows || []).map((row) => ({
+    top_content: (topContentResponse.data.rows || []).map((row) => ({
+      pagePath: row.dimensionValues?.[0]?.value || "Unknown",
+      activeUsers: parseMetric(row.metricValues?.[0]?.value),
+    })),
+    sources: (sourcesResponse.data.rows || []).map((row) => ({
       channelGroup: row.dimensionValues?.[0]?.value || "Unknown",
       activeUsers: parseMetric(row.metricValues?.[0]?.value),
-      sessions: parseMetric(row.metricValues?.[1]?.value),
-      screenPageViews: parseMetric(row.metricValues?.[2]?.value),
-      engagementRate: parseMetric(row.metricValues?.[3]?.value),
     })),
   };
 };

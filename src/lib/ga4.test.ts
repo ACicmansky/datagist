@@ -38,107 +38,104 @@ describe("GA4 Fetcher", () => {
     process.env.GOOGLE_CLIENT_SECRET = "test-client-secret";
   });
 
-  it("fetchReportData should call runReport with correct parameters", async () => {
+  it("fetchReportData should call runReport 3 times with correct parameters", async () => {
     const analyticsData = google.analyticsdata({ version: "v1beta" });
     const runReportMock = analyticsData.properties.runReport as unknown as ReturnType<typeof vi.fn>;
 
-    runReportMock.mockResolvedValue({
-      data: {
-        rows: [
-          {
-            dimensionValues: [{ value: "Organic Search" }],
-            metricValues: [
-              { value: "100" }, // activeUsers
-              { value: "120" }, // sessions
-              { value: "500" }, // screenPageViews
-              { value: "0.5" }, // engagementRate
-            ],
-          },
-        ],
-        totals: [
-          {
-            metricValues: [
-              { value: "1000" },
-              { value: "1200" },
-              { value: "5000" },
-              { value: "0.6" },
-            ],
-          },
-        ],
-      },
-    });
+    // Mock 3 responses
+    runReportMock
+      .mockResolvedValueOnce({
+        data: {
+          totals: [{ metricValues: [{ value: "100" }, { value: "120" }, { value: "0.5" }] }],
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          rows: [
+            { dimensionValues: [{ value: "/home" }], metricValues: [{ value: "50" }] },
+            { dimensionValues: [{ value: "/blog" }], metricValues: [{ value: "30" }] },
+          ],
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          rows: [
+            { dimensionValues: [{ value: "Organic Search" }], metricValues: [{ value: "80" }] },
+            { dimensionValues: [{ value: "Direct" }], metricValues: [{ value: "20" }] },
+          ],
+        },
+      });
 
     await fetchReportData(refreshToken, propertyId);
 
-    expect(runReportMock).toHaveBeenCalledWith({
-      property: propertyId,
-      requestBody: {
-        dateRanges: [{ startDate: "30daysAgo", endDate: "today" }],
-        dimensions: [{ name: "sessionDefaultChannelGroup" }],
-        metrics: [
-          { name: "activeUsers" },
-          { name: "sessions" },
-          { name: "screenPageViews" },
-          { name: "engagementRate" },
-        ],
-      },
-    });
+    expect(runReportMock).toHaveBeenCalledTimes(3);
+
+    // Check 1st call (Overview)
+    expect(runReportMock).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        requestBody: expect.objectContaining({
+          metrics: [{ name: "activeUsers" }, { name: "sessions" }, { name: "bounceRate" }],
+        }),
+      })
+    );
+
+    // Check 2nd call (Top Content)
+    expect(runReportMock).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        requestBody: expect.objectContaining({
+          dimensions: [{ name: "pagePath" }],
+          limit: 5,
+        }),
+      })
+    );
+
+    // Check 3rd call (Top Sources)
+    expect(runReportMock).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({
+        requestBody: expect.objectContaining({
+          dimensions: [{ name: "sessionDefaultChannelGroup" }],
+          limit: 5,
+        }),
+      })
+    );
   });
 
-  it("fetchReportData should return structured data", async () => {
+  it("fetchReportData should return enriched structured data", async () => {
     const analyticsData = google.analyticsdata({ version: "v1beta" });
     const runReportMock = analyticsData.properties.runReport as unknown as ReturnType<typeof vi.fn>;
 
-    runReportMock.mockResolvedValue({
-      data: {
-        rows: [
-          {
-            dimensionValues: [{ value: "Organic Search" }],
-            metricValues: [{ value: "100" }, { value: "120" }, { value: "500" }, { value: "0.5" }],
-          },
-          {
-            dimensionValues: [{ value: "Direct" }],
-            metricValues: [{ value: "50" }, { value: "60" }, { value: "200" }, { value: "0.4" }],
-          },
-        ],
-        totals: [
-          {
-            metricValues: [
-              { value: "150" }, // Total activeUsers
-              { value: "180" }, // Total sessions
-              { value: "700" }, // Total screenPageViews
-              { value: "0.45" }, // Avg engagementRate
-            ],
-          },
-        ],
-      },
-    });
+    runReportMock
+      .mockResolvedValueOnce({
+        data: {
+          totals: [{ metricValues: [{ value: "100" }, { value: "120" }, { value: "0.5" }] }],
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          rows: [{ dimensionValues: [{ value: "/home" }], metricValues: [{ value: "50" }] }],
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          rows: [
+            { dimensionValues: [{ value: "Organic Search" }], metricValues: [{ value: "80" }] },
+          ],
+        },
+      });
 
     const result = await fetchReportData(refreshToken, propertyId);
 
     expect(result).toEqual({
-      totals: {
-        activeUsers: 150,
-        sessions: 180,
-        screenPageViews: 700,
-        engagementRate: 0.45,
+      overview: {
+        activeUsers: 100,
+        sessions: 120,
+        bounceRate: 0.5,
       },
-      rows: [
-        {
-          channelGroup: "Organic Search",
-          activeUsers: 100,
-          sessions: 120,
-          screenPageViews: 500,
-          engagementRate: 0.5,
-        },
-        {
-          channelGroup: "Direct",
-          activeUsers: 50,
-          sessions: 60,
-          screenPageViews: 200,
-          engagementRate: 0.4,
-        },
-      ],
+      top_content: [{ pagePath: "/home", activeUsers: 50 }],
+      sources: [{ channelGroup: "Organic Search", activeUsers: 80 }],
     });
   });
 });

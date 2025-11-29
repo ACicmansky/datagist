@@ -1,16 +1,12 @@
-import { GoogleGenAI, Type } from "@google/genai";
-import type { GA4ReportData } from "./ga4";
+import { GoogleGenAI } from "@google/genai";
+import type { EnrichedReportData } from "./ga4";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-export interface AIInsight {
-  summary: string;
-  top_source: string;
-  recommendations: string[];
-}
+export type AIInsight = string;
 
 export const generateInsight = async (
-  metricsData: GA4ReportData,
+  metricsData: EnrichedReportData,
   planLevel: string
 ): Promise<AIInsight> => {
   const prompt = `
@@ -25,21 +21,24 @@ export const generateInsight = async (
     model: "gemini-2.5-flash-lite",
     contents: prompt,
     config: {
-      systemInstruction:
-        "You are a web analytics expert. Analyze this JSON data. Provide a summary of performance, identify the top traffic source, and give 3 specific recommendations.",
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          summary: { type: Type.STRING },
-          top_source: { type: Type.STRING },
-          recommendations: {
-            type: Type.ARRAY,
-            items: { type: Type.STRING },
-          },
-        },
-        required: ["summary", "top_source", "recommendations"],
-      },
+      systemInstruction: `You are a Senior Data Analyst for a digital agency. Your client is busy. Do not define metrics. Do not be generic.
+      
+      Analyze the provided data (Overview, Top Content, Top Sources).
+      - Look at top_content: Mention specific URLs that are performing well.
+      - Look at sources: Analyze where growth is coming from.
+      
+      Output Format:
+      Return raw HTML (not Markdown, no \`\`\`html blocks). Use the following structure:
+      <h2>Executive Summary</h2>
+      <ul>
+        <li>Key Movers (Bullet points of why numbers changed)</li>
+      </ul>
+      <h2>Content Wins</h2>
+      <p>Specific pages analysis...</p>
+      <h2>One Strategic Recommendation</h2>
+      <p>Actionable advice...</p>
+      
+      Use <strong> for emphasis.`,
     },
   });
 
@@ -48,5 +47,11 @@ export const generateInsight = async (
     throw new Error("No response from Gemini");
   }
 
-  return JSON.parse(text) as AIInsight;
+  // Strip markdown code blocks if present (Gemini sometimes adds them despite instructions)
+  const cleanHtml = text
+    .replace(/```html/g, "")
+    .replace(/```/g, "")
+    .trim();
+
+  return cleanHtml;
 };
