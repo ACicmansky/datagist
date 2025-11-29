@@ -6,27 +6,27 @@ export const ComplexityEnum = z.enum(["simple", "detailed"]);
 
 // --- Profiles ---
 export const ProfileSchema = z.object({
-  id: z.string().uuid(),
-  email: z.string().email(),
-  full_name: z.string().nullable().optional(),
-  avatar_url: z.string().nullable().optional(),
+  id: z.uuid(),
+  email: z.email(),
+  full_name: z.string().nullish(),
+  avatar_url: z.string().nullish(),
   subscription_tier: SubscriptionTierEnum,
-  stripe_customer_id: z.string().nullable().optional(),
-  stripe_subscription_id: z.string().nullable().optional(),
-  google_refresh_token: z.string().nullable().optional(),
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime(),
+  stripe_customer_id: z.string().nullish(),
+  stripe_subscription_id: z.string().nullish(),
+  google_refresh_token: z.string().nullish(),
+  created_at: z.iso.datetime(),
+  updated_at: z.iso.datetime(),
 });
 
 // --- Properties ---
 export const PropertySchema = z.object({
-  id: z.string().uuid(),
-  user_id: z.string().uuid(),
+  id: z.uuid(),
+  user_id: z.uuid(),
   ga_property_id: z.string().min(1, "GA4 Property ID is required"),
   property_name: z.string().min(1, "Name is required"),
-  website_url: z.string().url("Must be a valid URL").nullable().optional(),
-  industry: z.string().nullable().optional(),
-  created_at: z.string().datetime(),
+  website_url: z.url("Must be a valid URL").nullish(),
+  industry: z.string().nullish(),
+  created_at: z.iso.datetime(),
 });
 
 // --- Onboarding / Add Property Input ---
@@ -39,24 +39,30 @@ export const CreatePropertySchema = PropertySchema.pick({
 
 // --- Report Settings ---
 export const ReportSettingsSchema = z.object({
-  id: z.string().uuid(),
-  property_id: z.string().uuid(),
+  id: z.uuid(),
+  property_id: z.uuid(),
   frequency_days: z.number().int().min(1).max(30).default(30),
   complexity_level: ComplexityEnum.default("simple"),
   include_recommendations: z.boolean().default(false),
   is_active: z.boolean().default(true),
-  last_sent_at: z.string().datetime().nullable().optional(),
-  next_send_at: z.string().datetime().nullable().optional(),
+  last_sent_at: z.iso.datetime().nullish(),
+  next_send_at: z.iso.datetime().nullish(),
+});
+
+export const CreateReportSettingsSchema = ReportSettingsSchema.pick({
+  frequency_days: true,
+  complexity_level: true,
+  include_recommendations: true,
 });
 
 // --- Reports ---
 export const ReportSchema = z.object({
-  id: z.string().uuid(),
-  property_id: z.string().uuid(),
-  user_id: z.string().uuid(),
-  generated_at: z.string().datetime(),
-  ai_summary_html: z.string().nullable().optional(),
-  metrics_snapshot: z.record(z.any(), z.any()).nullable().optional(), // JSONB
+  id: z.uuid(),
+  property_id: z.uuid(),
+  user_id: z.uuid(),
+  generated_at: z.iso.datetime(),
+  ai_summary_html: z.string().nullish(),
+  metrics_snapshot: z.record(z.any(), z.any()).nullish(), // JSONB
   status: z.string().default("sent"),
 });
 
@@ -65,6 +71,7 @@ export type Profile = z.infer<typeof ProfileSchema>;
 export type Property = z.infer<typeof PropertySchema>;
 export type CreatePropertyInput = z.infer<typeof CreatePropertySchema>;
 export type ReportSettings = z.infer<typeof ReportSettingsSchema>;
+export type CreateReportSettingsInput = z.infer<typeof CreateReportSettingsSchema>;
 export type Report = z.infer<typeof ReportSchema>;
 
 // --- API Response Types (for AI) ---

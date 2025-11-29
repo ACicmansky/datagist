@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { listGA4Properties } from "@/lib/google";
-import type { CreatePropertyInput, ReportSettings } from "@/lib/validations/schemas";
-import { PropertySchema, ReportSettingsSchema } from "@/lib/validations/schemas";
+import type { CreatePropertyInput, CreateReportSettingsInput } from "@/lib/validations/schemas";
+import { CreatePropertySchema, CreateReportSettingsSchema } from "@/lib/validations/schemas";
 import { createClient } from "@/utils/supabase/server";
 
 export async function getPropertiesAction() {
@@ -45,7 +45,7 @@ export async function getPropertiesAction() {
 
 export async function savePropertyConfiguration(
   propertyData: CreatePropertyInput,
-  settingsData: ReportSettings
+  settingsData: CreateReportSettingsInput
 ) {
   const supabase = await createClient();
   const {
@@ -57,11 +57,13 @@ export async function savePropertyConfiguration(
   }
 
   // Validate inputs
-  const propertyValidation = PropertySchema.safeParse(propertyData);
-  const settingsValidation = ReportSettingsSchema.safeParse(settingsData);
+  const propertyValidation = CreatePropertySchema.safeParse(propertyData);
+  const settingsValidation = CreateReportSettingsSchema.safeParse(settingsData);
 
   if (!propertyValidation.success || !settingsValidation.success) {
-    return { error: "Invalid input data." };
+    return {
+      error: `Invalid input data. ${propertyValidation.error?.message}`,
+    };
   }
 
   const { ga_property_id, property_name, industry, website_url } = propertyValidation.data;

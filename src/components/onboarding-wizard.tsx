@@ -56,12 +56,13 @@ export function OnboardingWizard() {
     try {
       const result = await savePropertyConfiguration(
         {
-          property_id: selectedProp.id,
+          ga_property_id: selectedProp.id,
           property_name: selectedProp.name,
-          website_url: "", // We don't have this from listGA4Properties yet, maybe add input later
+          website_url: null, // We don't have this from listGA4Properties yet, maybe add input later
+          industry: null, // We don't have this from listGA4Properties yet, maybe add input later
         },
         {
-          frequency,
+          frequency_days: frequency === "weekly" ? 7 : 30,
           complexity_level: complexity,
           include_recommendations: includeRecommendations,
         }
