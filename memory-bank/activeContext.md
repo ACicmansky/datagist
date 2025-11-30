@@ -6,6 +6,14 @@
 - **Property Onboarding:**
   - `OnboardingWizard` component for selecting GA4 properties.
   - Server Actions to save property and report settings.
+## Completed
+- **Authentication:**
+  - Google OAuth with offline access (Refresh Token storage).
+  - Login Page and Google Sign-In Button.
+  - Landing Page with "Get Started" flow.
+- **Property Onboarding:**
+  - `OnboardingWizard` component for selecting GA4 properties.
+  - Server Actions to save property and report settings.
   - Google API Helper (`listGA4Properties`) with unit tests.
 - **Intelligence Engine (Phase 4):**
   - GA4 data fetching (`src/lib/ga4.ts`).
@@ -15,9 +23,15 @@
 - **Insight Quality & Email Delivery (Phase 5):**
   - Enriched GA4 data fetching: Overview, Top Content, Top Sources (parallel requests).
   - Upgraded AI prompt with "Senior Data Analyst" persona.
-  - HTML output format for email delivery.
+  - **TOON Format Refactor:** AI engine now uses TOON for efficient I/O with LLMs.
+  - **Structured Output:** AI returns `AIAnalysisResult` object instead of HTML.
   - Email integration using Resend (`src/lib/email.ts`).
   - Report email delivery integrated into dashboard actions.
+- **Structured Data Presentation Layer:**
+  - Database: Added `ai_result` (JSONB) column to `reports` table.
+  - Email Renderer: `src/lib/renderers/email-renderer.ts` generates professional HTML.
+  - Dashboard Component: `src/components/dashboard/report-card.tsx` displays reports.
+  - Updated actions to save structured data and use new renderer.
 - **Infrastructure:**
   - `proxy.ts` middleware for route protection and redirects.
   - `src/lib/validations/schemas.ts` for shared Zod schemas.
