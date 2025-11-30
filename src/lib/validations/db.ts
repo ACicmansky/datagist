@@ -45,7 +45,7 @@ export interface Report {
   status: string;
 }
 
-export interface AIReportResponse {
+export interface AIAnalysisResult {
   summary: string;
   recommendations?: string[];
   key_metrics_analysis: {

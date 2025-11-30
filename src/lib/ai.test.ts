@@ -1,79 +1,82 @@
-import { GoogleGenAI } from "@google/genai";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { generateInsight } from "./ai";
+import type { EnrichedReportData } from "./ga4";
+
+// Create mock for generateContent
+const generateContentMock = vi.fn();
 
 // Mock @google/genai
 vi.mock("@google/genai", () => {
-  const generateContentMock = vi.fn();
-  const GoogleGenAI = vi.fn(() => ({
-    models: {
-      generateContent: generateContentMock,
-    },
-  }));
+  // biome-ignore lint/complexity/useArrowFunction: Mock constructor
+  const GoogleGenAI = vi.fn(function () {
+    return {
+      models: {
+        generateContent: generateContentMock,
+      },
+    };
+  });
 
   return {
     GoogleGenAI,
-    Type: {
-      STRING: "STRING",
-      ARRAY: "ARRAY",
-      OBJECT: "OBJECT",
-    },
   };
 });
+
+// Mock @toon-format/toon
+vi.mock("@toon-format/toon", () => ({
+  encode: vi.fn(() => "mocked-toon-string"),
+  decode: vi.fn(() => ({
+    analysis: [
+      {
+        summary: "Executive Summary",
+        key_findings: "Finding 1|Finding 2",
+        top_performing_page: "/home",
+        strategic_recommendation: "Do this.",
+      },
+    ],
+  })),
+}));
 
 describe("AI Analyst", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.GEMINI_API_KEY = "test-api-key";
+    process.env.GEMINI_API_KEY = "test-key";
   });
 
-  it("generateInsight should call Gemini with correct config and return HTML", async () => {
-    const ai = new GoogleGenAI({ apiKey: "test" });
-    const generateContentMock = ai.models.generateContent as unknown as ReturnType<typeof vi.fn>;
+  it("generateInsight should return structured analysis object", async () => {
+    // Import after mocks are set up
+    const { generateInsight } = await import("./ai");
 
-    const mockResponseText = "<h2>Executive Summary</h2><p>Good job.</p>";
-
+    // Setup mock response
     generateContentMock.mockResolvedValue({
-      text: mockResponseText,
+      text: `
+        \`\`\`toon
+        analysis[1]{summary,key_findings,top_performing_page,strategic_recommendation}:
+        "Executive Summary","Finding 1|Finding 2","/home","Do this."
+        \`\`\`
+      `,
     });
 
-    const metricsData = {
-      overview: { activeUsers: 100, sessions: 120, bounceRate: 0.5 },
+    const mockData: EnrichedReportData = {
+      overview: { activeUsers: 100, sessions: 120, engagementRate: 0.5 },
       top_content: [],
       sources: [],
     };
 
-    const result = await generateInsight(metricsData, "pro");
+    const result = await generateInsight(mockData, "free");
 
-    const callArgs = generateContentMock.mock.calls[0][0];
-    expect(callArgs.model).toBe("gemini-2.5-flash-lite");
-    expect(callArgs.contents).toContain("Analyze this Google Analytics 4 data");
-    expect(callArgs.config.systemInstruction).toContain("You are a Senior Data Analyst");
-    expect(callArgs.config.responseMimeType).toBeUndefined();
-    expect(callArgs.config.responseSchema).toBeUndefined();
-
-    expect(result).toBe(mockResponseText);
-  });
-
-  it("generateInsight should strip markdown code blocks", async () => {
-    const ai = new GoogleGenAI({ apiKey: "test" });
-    const generateContentMock = ai.models.generateContent as unknown as ReturnType<typeof vi.fn>;
-
-    const mockResponseText = "```html\n<h2>Summary</h2>\n```";
-
-    generateContentMock.mockResolvedValue({
-      text: mockResponseText,
+    expect(result).toEqual({
+      summary: "Executive Summary",
+      key_findings: ["Finding 1", "Finding 2"],
+      top_performing_page: "/home",
+      strategic_recommendation: "Do this.",
     });
 
-    const result = await generateInsight(
-      {
-        overview: { activeUsers: 0, sessions: 0, bounceRate: 0 },
-        top_content: [],
-        sources: [],
-      },
-      "free"
+    expect(generateContentMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contents: expect.stringContaining("mocked-toon-string"),
+        config: expect.objectContaining({
+          systemInstruction: expect.stringContaining("You communicate only in TOON format"),
+        }),
+      })
     );
-
-    expect(result).toBe("<h2>Summary</h2>");
   });
 });

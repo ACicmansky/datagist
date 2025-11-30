@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { EnrichedReportData } from "@/lib/ga4";
 import type { CreatePropertyInput, CreateReportSettingsInput } from "@/lib/validations/schemas";
 import { getPropertiesAction, savePropertyConfiguration } from "./actions";
 
@@ -165,19 +164,31 @@ describe("Server Actions", () => {
         return { select: vi.fn(), upsert: vi.fn(), insert: vi.fn() };
       });
 
-      vi.mocked(fetchReportData).mockResolvedValue({ overview: {} } as EnrichedReportData);
-      vi.mocked(generateInsight).mockResolvedValue("<html>Report</html>");
+      vi.mocked(fetchReportData as any).mockResolvedValue({ overview: {} });
+      (generateInsight as any).mockResolvedValue({
+        summary: "Summary",
+        key_findings: ["Finding 1"],
+        top_performing_page: "/home",
+        strategic_recommendation: "Rec",
+      });
 
       const result = await generateManualReport("prop1");
 
       expect(result).toEqual({ success: true });
       expect(fetchReportData).toHaveBeenCalledWith("refresh1", "ga1");
       expect(generateInsight).toHaveBeenCalledWith({ overview: {} }, "pro");
-      expect(sendReportEmail).toHaveBeenCalledWith("test@example.com", "<html>Report</html>");
+      // renderReportHtml will be called internally, and sendReportEmail will receive the HTML
+      // Since we didn't mock renderReportHtml explicitly in the test file (it's imported dynamically in the action),
+      // we rely on the integration or mock it if we want to be strict.
+      // However, sendReportEmail should receive *some* string.
+      expect(sendReportEmail).toHaveBeenCalledWith(
+        "test@example.com",
+        expect.stringContaining("<h1>Monthly Report</h1>")
+      );
       expect(mockInsertFn).toHaveBeenCalledWith(
         expect.objectContaining({
           status: "generated",
-          ai_summary_html: "<html>Report</html>",
+          ai_summary_html: expect.stringContaining("<h1>Monthly Report</h1>"),
         })
       );
     });

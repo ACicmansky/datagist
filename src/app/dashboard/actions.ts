@@ -160,19 +160,22 @@ export async function generateManualReport(propertyId: string) {
     // 2. Fetch GA4 Data (Enriched)
     const metrics = await fetchReportData(profile.google_refresh_token, property.ga_property_id);
 
-    // 3. Generate AI Insight (HTML)
-    // Determine plan level (default to 'free' if not found)
+    // 3. Generate AI Insight (Structured Object)
     const planLevel = profile.subscription_tier || "free";
-    const insightHtml = await generateInsight(metrics, planLevel);
+    const analysis = await generateInsight(metrics, planLevel);
 
-    // 4. Save to Database
+    // 4. Render HTML for Email
+    const { renderReportHtml } = await import("@/lib/email-renderer");
+    const insightHtml = renderReportHtml(analysis);
+
+    // 5. Save to Database
     const { error: insertError } = await supabase.from("reports").insert({
       property_id: property.id,
       user_id: user.id,
       ai_summary_html: insightHtml,
       metrics_snapshot: {
         metrics,
-        insight: insightHtml,
+        insight: analysis, // Storing structured object here
       },
       status: "generated", // Will update to 'sent' after email
     });

@@ -66,6 +66,14 @@ export const ReportSchema = z.object({
   status: z.string().default("sent"),
 });
 
+// --- API Response Types (for AI) ---
+export const AIAnalysisResultSchema = z.object({
+  summary: z.string(),
+  key_findings: z.array(z.string()),
+  top_performing_page: z.string(),
+  strategic_recommendation: z.string(),
+});
+
 // --- Types derived from Zod ---
 export type Profile = z.infer<typeof ProfileSchema>;
 export type Property = z.infer<typeof PropertySchema>;
@@ -73,14 +81,4 @@ export type CreatePropertyInput = z.infer<typeof CreatePropertySchema>;
 export type ReportSettings = z.infer<typeof ReportSettingsSchema>;
 export type CreateReportSettingsInput = z.infer<typeof CreateReportSettingsSchema>;
 export type Report = z.infer<typeof ReportSchema>;
-
-// --- API Response Types (for AI) ---
-export interface AIReportResponse {
-  summary: string;
-  recommendations?: string[];
-  key_metrics_analysis: {
-    metric: string;
-    status: "up" | "down" | "stable";
-    insight: string;
-  }[];
-}
+export type AIAnalysisResult = z.infer<typeof AIAnalysisResultSchema>;
