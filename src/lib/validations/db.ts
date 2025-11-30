@@ -41,6 +41,9 @@ export interface Report {
   user_id: string; // UUID
   generated_at: string;
   ai_summary_html?: string | null;
+  ai_result?: AIAnalysisResult | null; // JSONB
   metrics_snapshot?: Record<string, any> | null; // JSONB
   status: string;
 }
+
+import type { AIAnalysisResult } from "./ai";

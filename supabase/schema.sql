@@ -49,6 +49,7 @@ create table public.reports (
   user_id uuid references public.profiles(id) on delete cascade not null, -- Denormalized for easier RLS
   generated_at timestamp with time zone default timezone('utc'::text, now()) not null,
   ai_summary_html text, -- The final email content
+  ai_result jsonb,
   metrics_snapshot jsonb, -- The raw data used (for debugging/history)
   status text default 'sent'
 );

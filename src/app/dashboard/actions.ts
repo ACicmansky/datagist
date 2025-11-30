@@ -165,17 +165,18 @@ export async function generateManualReport(propertyId: string) {
     const analysis = await generateInsight(metrics, planLevel);
 
     // 4. Render HTML for Email
-    const { renderReportHtml } = await import("@/lib/email-renderer");
-    const insightHtml = renderReportHtml(analysis);
+    const { renderEmailTemplate } = await import("@/lib/renderers/email-renderer");
+    const insightHtml = renderEmailTemplate(analysis);
 
     // 5. Save to Database
     const { error: insertError } = await supabase.from("reports").insert({
       property_id: property.id,
       user_id: user.id,
       ai_summary_html: insightHtml,
+      ai_result: analysis, // Save structured data
       metrics_snapshot: {
         metrics,
-        insight: analysis, // Storing structured object here
+        // insight: analysis, // Removed redundant storage inside metrics_snapshot
       },
       status: "generated", // Will update to 'sent' after email
     });

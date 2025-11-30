@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
+import { ReportCard } from "@/components/dashboard/report-card";
 import { OnboardingWizard } from "@/components/onboarding-wizard";
 import { ReportGenerator } from "@/components/report-generator";
+import type { AIAnalysisResult } from "@/lib/validations/ai";
 import { createClient } from "@/utils/supabase/server";
 
 export default async function DashboardPage() {
@@ -51,38 +53,22 @@ export default async function DashboardPage() {
         {reports && reports.length > 0 ? (
           <div className="grid gap-4">
             {reports.map((report) => {
-              const insight = report.metrics_snapshot?.insight;
-              return (
-                <div key={report.id} className="border rounded-lg p-6 shadow-sm">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="text-xl font-medium">{insight?.summary || "Report"}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Generated on {new Date(report.generated_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                      {report.status}
-                    </span>
-                  </div>
+              // Ensure type safety for ai_result
+              const aiResult = report.ai_result as AIAnalysisResult | null;
 
-                  {insight && (
-                    <div className="space-y-4">
-                      <div>
-                        <span className="font-semibold">Top Source:</span> {insight.top_source}
-                      </div>
-                      <div>
-                        <h4 className="font-semibold mb-2">Recommendations:</h4>
-                        <ul className="list-disc pl-5 space-y-1">
-                          {insight.recommendations?.map((rec: string, i: number) => (
-                            <li key={rec}>{rec}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
+              if (!aiResult) {
+                // Fallback for old reports or failed generations
+                return (
+                  <div key={report.id} className="border rounded-lg p-6 shadow-sm">
+                    <p className="text-muted-foreground">
+                      Legacy report generated on{" "}
+                      {new Date(report.generated_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                );
+              }
+
+              return <ReportCard key={report.id} data={aiResult} date={report.generated_at} />;
             })}
           </div>
         ) : (

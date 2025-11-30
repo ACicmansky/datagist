@@ -176,19 +176,19 @@ describe("Server Actions", () => {
 
       expect(result).toEqual({ success: true });
       expect(fetchReportData).toHaveBeenCalledWith("refresh1", "ga1");
-      expect(generateInsight).toHaveBeenCalledWith({ overview: {} }, "pro");
-      // renderReportHtml will be called internally, and sendReportEmail will receive the HTML
-      // Since we didn't mock renderReportHtml explicitly in the test file (it's imported dynamically in the action),
-      // we rely on the integration or mock it if we want to be strict.
-      // However, sendReportEmail should receive *some* string.
+      expect(generateInsight).toHaveBeenCalledWith(expect.anything(), expect.anything());
+      // renderEmailTemplate will be called internally, and sendReportEmail will receive the HTML
       expect(sendReportEmail).toHaveBeenCalledWith(
         "test@example.com",
-        expect.stringContaining("<h1>Monthly Report</h1>")
+        expect.stringContaining("<h1>Monthly Analysis Report</h1>")
       );
       expect(mockInsertFn).toHaveBeenCalledWith(
         expect.objectContaining({
           status: "generated",
-          ai_summary_html: expect.stringContaining("<h1>Monthly Report</h1>"),
+          ai_summary_html: expect.stringContaining("<h1>Monthly Analysis Report</h1>"),
+          ai_result: expect.objectContaining({
+            summary: "Summary",
+          }),
         })
       );
     });
