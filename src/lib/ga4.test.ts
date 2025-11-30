@@ -44,7 +44,11 @@ describe("GA4 Fetcher", () => {
     runReportMock
       .mockResolvedValueOnce({
         data: {
-          totals: [{ metricValues: [{ value: "100" }, { value: "120" }, { value: "0.5" }] }],
+          rows: [
+            {
+              metricValues: [{ value: "100" }, { value: "120" }, { value: "0.55" }],
+            },
+          ],
         },
       })
       .mockResolvedValueOnce({
@@ -73,7 +77,8 @@ describe("GA4 Fetcher", () => {
       1,
       expect.objectContaining({
         requestBody: expect.objectContaining({
-          metrics: [{ name: "activeUsers" }, { name: "sessions" }, { name: "bounceRate" }],
+          metrics: [{ name: "activeUsers" }, { name: "sessions" }, { name: "engagementRate" }],
+          dimensions: [],
         }),
       })
     );
@@ -108,7 +113,11 @@ describe("GA4 Fetcher", () => {
     runReportMock
       .mockResolvedValueOnce({
         data: {
-          totals: [{ metricValues: [{ value: "100" }, { value: "120" }, { value: "0.5" }] }],
+          rows: [
+            {
+              metricValues: [{ value: "100" }, { value: "120" }, { value: "0.55" }],
+            },
+          ],
         },
       })
       .mockResolvedValueOnce({
@@ -130,7 +139,7 @@ describe("GA4 Fetcher", () => {
       overview: {
         activeUsers: 100,
         sessions: 120,
-        bounceRate: 0.5,
+        engagementRate: 0.55,
       },
       top_content: [{ pagePath: "/home", activeUsers: 50 }],
       sources: [{ channelGroup: "Organic Search", activeUsers: 80 }],

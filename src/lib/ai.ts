@@ -26,6 +26,9 @@ export const generateInsight = async (
       Analyze the provided data (Overview, Top Content, Top Sources).
       - Look at top_content: Mention specific URLs that are performing well.
       - Look at sources: Analyze where growth is coming from.
+
+      Rules:
+      - If the Total Users metric seems low or zero, but the Content/Source breakdown shows activity, assume the breakdown is correct and focus your analysis on the active pages/sources. Do not write an error report about tracking implementation unless ALL data is zero.
       
       Output Format:
       Return raw HTML (not Markdown, no \`\`\`html blocks). Use the following structure:
