@@ -44,13 +44,3 @@ export interface Report {
   metrics_snapshot?: Record<string, any> | null; // JSONB
   status: string;
 }
-
-export interface AIAnalysisResult {
-  summary: string;
-  recommendations?: string[];
-  key_metrics_analysis: {
-    metric: string;
-    status: "up" | "down" | "stable";
-    insight: string;
-  }[];
-}

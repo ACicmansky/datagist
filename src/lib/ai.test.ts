@@ -24,14 +24,10 @@ vi.mock("@google/genai", () => {
 vi.mock("@toon-format/toon", () => ({
   encode: vi.fn(() => "mocked-toon-string"),
   decode: vi.fn(() => ({
-    analysis: [
-      {
-        summary: "Executive Summary",
-        key_findings: "Finding 1|Finding 2",
-        top_performing_page: "/home",
-        strategic_recommendation: "Do this.",
-      },
-    ],
+    summary: "Executive Summary",
+    key_findings: ["Finding 1", "Finding 2", "Finding 3"],
+    top_performing_page: "/home",
+    strategic_recommendation: "Do this.",
   })),
 }));
 
@@ -45,12 +41,14 @@ describe("AI Analyst", () => {
     // Import after mocks are set up
     const { generateInsight } = await import("./ai");
 
-    // Setup mock response
+    // Setup mock response matching the new TOON format with tabs
     generateContentMock.mockResolvedValue({
       text: `
         \`\`\`toon
-        analysis[1]{summary,key_findings,top_performing_page,strategic_recommendation}:
-        "Executive Summary","Finding 1|Finding 2","/home","Do this."
+        summary: Executive Summary
+        key_findings[3\t]: Finding 1\tFinding 2\tFinding 3
+        top_performing_page: /home
+        strategic_recommendation: Do this.
         \`\`\`
       `,
     });
@@ -65,16 +63,48 @@ describe("AI Analyst", () => {
 
     expect(result).toEqual({
       summary: "Executive Summary",
-      key_findings: ["Finding 1", "Finding 2"],
+      key_findings: ["Finding 1", "Finding 2", "Finding 3"],
       top_performing_page: "/home",
       strategic_recommendation: "Do this.",
     });
 
     expect(generateContentMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        model: "gemini-2.5-flash-lite",
         contents: expect.stringContaining("mocked-toon-string"),
         config: expect.objectContaining({
-          systemInstruction: expect.stringContaining("You communicate only in TOON format"),
+          systemInstruction: expect.stringContaining("Lead Digital Intelligence Unit"),
+        }),
+      })
+    );
+  });
+
+  it("generateInsight should accept numberOfDays parameter", async () => {
+    const { generateInsight } = await import("./ai");
+
+    generateContentMock.mockResolvedValue({
+      text: `
+        \`\`\`toon
+        summary: 7-day Summary
+        key_findings[3\t]: Finding A\tFinding B\tFinding C
+        top_performing_page: /landing
+        strategic_recommendation: Short-term advice.
+        \`\`\`
+      `,
+    });
+
+    const mockData: EnrichedReportData = {
+      overview: { activeUsers: 50, sessions: 60, engagementRate: 0.7 },
+      top_content: [],
+      sources: [],
+    };
+
+    await generateInsight(mockData, "pro", 7);
+
+    expect(generateContentMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        config: expect.objectContaining({
+          systemInstruction: expect.stringContaining("Last **7** days"),
         }),
       })
     );
