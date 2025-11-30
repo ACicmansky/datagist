@@ -25,6 +25,7 @@ create table public.properties (
   property_name text not null,
   website_url text, -- Used for AI Grounding
   industry text, -- Optional context for AI
+  connection_status text default 'connected', -- 'connected', 'error'
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   unique(user_id, ga_property_id)
 );
@@ -39,6 +40,7 @@ create table public.report_settings (
   is_active boolean default true,
   last_sent_at timestamp with time zone,
   next_send_at timestamp with time zone default timezone('utc'::text, now()),
+  last_error text, -- Track why a job failed
   unique(property_id) -- One settings row per property
 );
 

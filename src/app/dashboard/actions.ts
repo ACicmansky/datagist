@@ -120,9 +120,7 @@ export async function savePropertyConfiguration(
   return { success: true };
 }
 
-import { generateInsight } from "@/lib/ai";
-import { sendReportEmail } from "@/lib/email";
-import { fetchReportData } from "@/lib/ga4";
+import { processReportForProperty } from "@/lib/services/report-generator";
 
 export async function generateManualReport(propertyId: string) {
   const supabase = await createClient();
@@ -134,68 +132,22 @@ export async function generateManualReport(propertyId: string) {
     redirect("/login");
   }
 
-  // 1. Fetch Property & Profile (for Refresh Token)
+  // 1. Verify Ownership (Security Check)
+  // We must ensure the user owns this property before triggering the admin-level service
   const { data: property, error: propertyError } = await supabase
     .from("properties")
-    .select("id, ga_property_id, property_name")
+    .select("id")
     .eq("id", propertyId)
     .eq("user_id", user.id)
     .single();
 
   if (propertyError || !property) {
-    return { error: "Property not found." };
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("google_refresh_token, subscription_tier")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile?.google_refresh_token) {
-    return { error: "No Google account connected." };
+    return { error: "Property not found or access denied." };
   }
 
   try {
-    // 2. Fetch GA4 Data (Enriched)
-    const metrics = await fetchReportData(profile.google_refresh_token, property.ga_property_id);
-
-    // 3. Generate AI Insight (Structured Object)
-    const planLevel = profile.subscription_tier || "free";
-    const analysis = await generateInsight(metrics, planLevel);
-
-    // 4. Render HTML for Email
-    const { renderEmailTemplate } = await import("@/lib/renderers/email-renderer");
-    const insightHtml = renderEmailTemplate(analysis);
-
-    // 5. Save to Database
-    const { error: insertError } = await supabase.from("reports").insert({
-      property_id: property.id,
-      user_id: user.id,
-      ai_summary_html: insightHtml,
-      ai_result: analysis, // Save structured data
-      metrics_snapshot: {
-        metrics,
-        // insight: analysis, // Removed redundant storage inside metrics_snapshot
-      },
-      status: "generated", // Will update to 'sent' after email
-    });
-
-    if (insertError) {
-      console.error("Error saving report:", insertError);
-      return { error: "Failed to save report." };
-    }
-
-    // 5. Send Email
-    if (user.email) {
-      await sendReportEmail(user.email, insightHtml);
-
-      // Update status to 'sent'
-      // Note: We'd ideally get the report ID from insert, but for now we can just leave it as 'generated'
-      // or update the latest one. Since we don't have the ID from insert (unless we select it),
-      // let's just assume success for now or try to select it.
-      // Actually, let's select the ID from insert.
-    }
+    // 2. Call the Service
+    await processReportForProperty(propertyId, user.id);
 
     revalidatePath("/dashboard");
     return { success: true };

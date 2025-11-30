@@ -55,6 +55,10 @@ vi.mock("@/utils/supabase/server", () => ({
   createClient: vi.fn(() => mockSupabase),
 }));
 
+vi.mock("@/lib/services/report-generator", () => ({
+  processReportForProperty: vi.fn(),
+}));
+
 describe("Server Actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -121,76 +125,35 @@ describe("Server Actions", () => {
   });
 
   describe("generateManualReport", () => {
-    it("should generate report and send email", async () => {
+    it("should call processReportForProperty", async () => {
       const { generateManualReport } = await import("./actions");
-      const { fetchReportData } = await import("@/lib/ga4");
-      const { generateInsight } = await import("@/lib/ai");
-      const { sendReportEmail } = await import("@/lib/email");
+      const { processReportForProperty } = await import("@/lib/services/report-generator");
 
       mockSupabase.auth.getUser.mockResolvedValue({
         data: { user: { id: "user1", email: "test@example.com" } },
       });
 
-      // Mock property fetch
+      // Mock property fetch (ownership check)
       const mockSelectProperty = vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            single: vi
-              .fn()
-              .mockResolvedValue({ data: { id: "prop1", ga_property_id: "ga1" }, error: null }),
+            single: vi.fn().mockResolvedValue({ data: { id: "prop1" }, error: null }),
           }),
         }),
       });
-
-      // Mock profile fetch
-      const mockSelectProfile = vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({
-            data: { google_refresh_token: "refresh1", subscription_tier: "pro" },
-            error: null,
-          }),
-        }),
-      });
-
-      // Mock insert
-      const mockInsertFn = vi.fn().mockResolvedValue({ error: null });
 
       mockSupabase.from.mockImplementation((_table: string) => {
         if (_table === "properties")
           return { select: mockSelectProperty, upsert: vi.fn(), insert: vi.fn() };
-        if (_table === "profiles")
-          return { select: mockSelectProfile, upsert: vi.fn(), insert: vi.fn() };
-        if (_table === "reports") return { insert: mockInsertFn, select: vi.fn(), upsert: vi.fn() };
         return { select: vi.fn(), upsert: vi.fn(), insert: vi.fn() };
       });
 
-      vi.mocked(fetchReportData as any).mockResolvedValue({ overview: {} });
-      (generateInsight as any).mockResolvedValue({
-        summary: "Summary",
-        key_findings: ["Finding 1"],
-        top_performing_page: "/home",
-        strategic_recommendation: "Rec",
-      });
+      vi.mocked(processReportForProperty).mockResolvedValue({ success: true });
 
       const result = await generateManualReport("prop1");
 
       expect(result).toEqual({ success: true });
-      expect(fetchReportData).toHaveBeenCalledWith("refresh1", "ga1");
-      expect(generateInsight).toHaveBeenCalledWith(expect.anything(), expect.anything());
-      // renderEmailTemplate will be called internally, and sendReportEmail will receive the HTML
-      expect(sendReportEmail).toHaveBeenCalledWith(
-        "test@example.com",
-        expect.stringContaining("<h1>Monthly Analysis Report</h1>")
-      );
-      expect(mockInsertFn).toHaveBeenCalledWith(
-        expect.objectContaining({
-          status: "generated",
-          ai_summary_html: expect.stringContaining("<h1>Monthly Analysis Report</h1>"),
-          ai_result: expect.objectContaining({
-            summary: "Summary",
-          }),
-        })
-      );
+      expect(processReportForProperty).toHaveBeenCalledWith("prop1", "user1");
     });
   });
 });
