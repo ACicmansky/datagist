@@ -5,9 +5,13 @@ import { fetchReportData } from "./ga4";
 // Mock googleapis
 vi.mock("googleapis", () => {
   const setCredentialsMock = vi.fn();
-  const OAuth2 = vi.fn(() => ({
-    setCredentials: setCredentialsMock,
-  }));
+  // biome-ignore-start lint/complexity/useArrowFunction: cannot be used with the new keyword
+  const OAuth2 = vi.fn(function () {
+    return {
+      setCredentials: setCredentialsMock,
+    };
+  });
+  // biome-ignore-end lint/complexity/useArrowFunction: cannot be used with the new keyword
 
   const runReportMock = vi.fn();
   const analyticsDataMock = {
@@ -89,7 +93,7 @@ describe("GA4 Fetcher", () => {
       expect.objectContaining({
         requestBody: expect.objectContaining({
           dimensions: [{ name: "pagePath" }],
-          limit: 5,
+          limit: "5",
         }),
       })
     );
@@ -100,7 +104,7 @@ describe("GA4 Fetcher", () => {
       expect.objectContaining({
         requestBody: expect.objectContaining({
           dimensions: [{ name: "sessionDefaultChannelGroup" }],
-          limit: 5,
+          limit: "5",
         }),
       })
     );
