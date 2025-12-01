@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { ReportCard } from "@/components/dashboard/report-card";
 import { OnboardingWizard } from "@/components/onboarding-wizard";
 import { ReportGenerator } from "@/components/report-generator";
+import { SubscribeButton } from "@/components/subscribe-button";
 import type { AIAnalysisResult } from "@/lib/validations/ai";
 import { createClient } from "@/utils/supabase/server";
 
@@ -14,6 +15,15 @@ export default async function DashboardPage() {
   if (!user) {
     redirect("/login");
   }
+
+  // Fetch user profile for subscription status
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("subscription_tier")
+    .eq("id", user.id)
+    .single();
+
+  const isPro = profile?.subscription_tier === "pro" || profile?.subscription_tier === "max";
 
   // Check if user has any properties configured
   const { data: property } = await supabase
@@ -45,7 +55,10 @@ export default async function DashboardPage() {
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground">Overview for {property.property_name}</p>
         </div>
-        <ReportGenerator propertyId={property.id} />
+        <div className="flex gap-2 items-center">
+          {!isPro && <SubscribeButton />}
+          <ReportGenerator propertyId={property.id} />
+        </div>
       </div>
 
       <div className="grid gap-6">
@@ -62,7 +75,7 @@ export default async function DashboardPage() {
                   <div key={report.id} className="border rounded-lg p-6 shadow-sm">
                     <p className="text-muted-foreground">
                       Legacy report generated on{" "}
-                      {new Date(report.generated_at).toLocaleDateString()}
+                      {new Date(report.generated_at).toISOString().slice(0, 10)}
                     </p>
                   </div>
                 );

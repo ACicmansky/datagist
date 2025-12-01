@@ -17,11 +17,7 @@ export function ReportCard({ data, date }: ReportCardProps) {
           <CardTitle className="text-xl font-bold">Analysis Report</CardTitle>
           <div className="flex items-center text-sm text-muted-foreground">
             <CalendarIcon className="mr-1 h-4 w-4" />
-            {new Date(date).toLocaleDateString(undefined, {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
+            {new Date(date).toISOString().slice(0, 10)}
           </div>
         </div>
       </CardHeader>

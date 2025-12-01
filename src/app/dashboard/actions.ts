@@ -73,6 +73,43 @@ export async function savePropertyConfiguration(
   const { ga_property_id, property_name, industry, website_url } = propertyValidation.data;
   const { frequency_days, complexity_level, include_recommendations } = settingsValidation.data;
 
+  // 0. Guardrails: Check Limits
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("subscription_tier")
+    .eq("id", user.id)
+    .single();
+
+  const { count } = await supabase
+    .from("properties")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", user.id);
+
+  const tier = profile?.subscription_tier || "free";
+  const currentCount = count || 0;
+
+  // Limit 1: Property Count
+  if (tier === "free" && currentCount >= 1) {
+    // Check if we are updating an existing property (allow updates)
+    const { data: existingProperty } = await supabase
+      .from("properties")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("ga_property_id", ga_property_id)
+      .single();
+
+    if (!existingProperty) {
+      return {
+        error: "Free plan is limited to 1 property. Upgrade to Pro to track multiple sites.",
+      };
+    }
+  }
+
+  // Limit 2: Frequency
+  if (tier === "free" && frequency_days < 30) {
+    return { error: "Weekly reports are for Pro users only. Free plan is monthly (30 days)." };
+  }
+
   // 1. Save Property
   const { data: property, error: propertyError } = await supabase
     .from("properties")
@@ -154,5 +191,57 @@ export async function generateManualReport(propertyId: string) {
   } catch (error: unknown) {
     console.error("Error generating report:", error);
     return { error: error instanceof Error ? error.message : "Failed to generate report." };
+  }
+}
+
+import { createCheckoutSession } from "@/lib/stripe";
+
+export async function startSubscription() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("email")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile?.email) {
+    return { error: "User email not found." };
+  }
+
+  try {
+    // TODO: Get Price ID from env or constant
+    const priceId = process.env.STRIPE_PRO_PRICE_ID;
+    if (!priceId) {
+      throw new Error("Stripe Price ID is not configured.");
+    }
+
+    const returnUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+    const session = await createCheckoutSession(
+      user.id,
+      profile.email,
+      priceId,
+      `${returnUrl}/dashboard`
+    );
+
+    if (!session.url) {
+      throw new Error("Failed to create checkout session.");
+    }
+
+    redirect(session.url);
+  } catch (error: unknown) {
+    console.error("Stripe Error:", error);
+    if (error instanceof Error && error.message === "NEXT_REDIRECT") {
+      throw error; // Re-throw redirect
+    }
+    return { error: "Failed to start subscription." };
   }
 }

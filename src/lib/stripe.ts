@@ -1,0 +1,32 @@
+import Stripe from "stripe";
+
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
+  apiVersion: "2025-11-17.clover" as any, // Cast to any to avoid strict type checking issues if types are mismatched
+  typescript: true,
+});
+
+export async function createCheckoutSession(
+  userId: string,
+  email: string,
+  priceId: string,
+  returnUrl: string
+) {
+  const session = await stripe.checkout.sessions.create({
+    mode: "subscription",
+    payment_method_types: ["card"],
+    line_items: [
+      {
+        price: priceId,
+        quantity: 1,
+      },
+    ],
+    customer_email: email,
+    metadata: {
+      supabase_user_id: userId,
+    },
+    success_url: `${returnUrl}?success=true`,
+    cancel_url: `${returnUrl}?canceled=true`,
+  });
+
+  return session;
+}
