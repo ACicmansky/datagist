@@ -1,4 +1,9 @@
 ## Completed
+- Stripe Integration: `lib/stripe.ts` for checkout sessions.
+- Webhook Handler: `api/stripe/webhook` handles `checkout.session.completed` using Service Role to bypass RLS.
+- Guardrails: `savePropertyConfiguration` enforces limits (1 property, 30-day frequency) for Free users.
+- UI: `SubscribeButton` and conditional rendering on Dashboard.
+## Completed
 - **Authentication:**
   - Google OAuth with offline access (Refresh Token storage).
   - Login Page and Google Sign-In Button.

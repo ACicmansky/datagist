@@ -1,3 +1,4 @@
+```
 # Tech Context
 
 ## Core Stack
@@ -10,6 +11,8 @@
 ## Integrations
 - **Google Analytics:** Google Analytics Data API (v1beta).
 - **Payments:** Stripe (Checkout & Webhooks).
+    - `stripe` npm package.
+    - Webhook signature verification.
 - **Email:** Resend (preferred) or SendGrid.
 
 ## Development Tools
@@ -27,4 +30,5 @@
 
 ## Constraints
 - **Vercel Functions:** 10-second timeout limit on standard serverless functions (reason for using Supabase Edge Functions for long-running AI tasks).
-- **GA4 API:** Quotas apply; we must cache data or respect rate limits. 
+- **GA4 API:** Quotas apply; we must cache data or respect rate limits.
+```

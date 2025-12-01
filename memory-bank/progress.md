@@ -6,6 +6,14 @@
 ## What Works
 - [x] Database schema defined (Supabase)
 - [x] Google OAuth Integration (UI & Backend)
+# Progress
+
+## What Works
+# Progress
+
+## What Works
+- [x] Database schema defined (Supabase)
+- [x] Google OAuth Integration (UI & Backend)
 - [x] Property Onboarding Flow (Wizard & Server Actions)
 - [x] Google Analytics API Integration (Helper functions)
 - [x] GA4 Data Fetching & AI Analysis (Phase 4)
@@ -14,6 +22,8 @@
 - [x] AI Engine TOON Refactor (structured I/O)
 - [x] Structured Data Presentation Layer (email-renderer, report-card)
 - [x] Email delivery (Resend integration)
+- [x] Monetization: Stripe Integration (Checkout & Webhooks)
+- [x] Guardrails: Usage limits for Free Tier
 - [ ] Edge Functions for automated scheduling
 
 ## Known Issues
