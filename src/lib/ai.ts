@@ -16,11 +16,9 @@ export const generateInsight = async (
   const prompt = `Input Data:
 ${contextToon}`;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash-lite",
-    contents: prompt,
-    config: {
-      systemInstruction: `You are the Lead Digital Intelligence Unit.
+  const isPro = planLevel === "pro" || planLevel === "max";
+
+  let systemInstruction = `You are the Lead Digital Intelligence Unit.
 Your Directive: Ingest Google Analytics data (formatted in TOON) and output high-leverage strategic insights.
 
 ### CONTEXT & CONFIGURATION
@@ -78,7 +76,21 @@ urls[1\t]{path\tviews}:
 summary: Over the last ${numberOfDays} days, the site operated as a high-efficiency Single Page Application, capturing 500 users with an exceptional 80% engagement rate driven largely by Google Search.
 key_findings[3\t]: Google Search is the dominant acquisition vector, contributing 80% (400 users) of total traffic\tEngagement is exceptionally high at 0.8, indicating the single landing page is resonating well with the audience\tDirect traffic remains a secondary channel with 100 visits, likely from returning users
 top_performing_page: /landing-page
-strategic_recommendation: [Model generates pro or free(basic) advice based on Plan Level]`,
+strategic_recommendation: [Model generates pro or free(basic) advice based on Plan Level]`;
+
+  if (isPro) {
+    systemInstruction += `
+
+### GROUNDING INSTRUCTION
+You have access to Google Search. Before generating the recommendations, search for recent news or trends related to the website's top content keywords. If a macro-trend explains the data (e.g., "Holiday shopping season started"), mention it in the Strategic Recommendation.`;
+  }
+
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash-lite",
+    contents: prompt,
+    config: {
+      systemInstruction,
+      tools: isPro ? [{ googleSearch: {} }] : undefined,
     },
   });
 

@@ -109,4 +109,71 @@ describe("AI Analyst", () => {
       })
     );
   });
+
+  it("generateInsight should enable grounding for pro plan", async () => {
+    const { generateInsight } = await import("./ai");
+
+    generateContentMock.mockResolvedValue({
+      text: `
+        \`\`\`toon
+        summary: Pro Summary
+        key_findings[3\t]: Finding 1\tFinding 2\tFinding 3
+        top_performing_page: /home
+        strategic_recommendation: Pro advice.
+        \`\`\`
+      `,
+    });
+
+    const mockData: EnrichedReportData = {
+      overview: { activeUsers: 100, sessions: 120, engagementRate: 0.5 },
+      top_content: [],
+      sources: [],
+    };
+
+    await generateInsight(mockData, "pro");
+
+    expect(generateContentMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        config: expect.objectContaining({
+          tools: [{ googleSearch: {} }],
+          systemInstruction: expect.stringContaining("GROUNDING INSTRUCTION"),
+        }),
+      })
+    );
+  });
+
+  it("generateInsight should NOT enable grounding for free plan", async () => {
+    const { generateInsight } = await import("./ai");
+
+    generateContentMock.mockResolvedValue({
+      text: `
+        \`\`\`toon
+        summary: Free Summary
+        key_findings[3\t]: Finding 1\tFinding 2\tFinding 3
+        top_performing_page: /home
+        strategic_recommendation: Free advice.
+        \`\`\`
+      `,
+    });
+
+    const mockData: EnrichedReportData = {
+      overview: { activeUsers: 100, sessions: 120, engagementRate: 0.5 },
+      top_content: [],
+      sources: [],
+    };
+
+    await generateInsight(mockData, "free");
+
+    expect(generateContentMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        config: expect.objectContaining({
+          tools: undefined,
+        }),
+      })
+    );
+
+    // Verify system instruction does NOT contain grounding instruction
+    const callArgs = generateContentMock.mock.calls[generateContentMock.mock.calls.length - 1][0];
+    expect(callArgs.config.systemInstruction).not.toContain("GROUNDING INSTRUCTION");
+  });
 });
