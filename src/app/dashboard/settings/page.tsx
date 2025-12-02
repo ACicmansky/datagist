@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { DeleteAccountButton } from "@/components/dashboard/delete-account-button";
 import { DeletePropertyButton } from "@/components/dashboard/delete-property-button";
 import { SettingsForm } from "@/components/dashboard/settings-form";
 import { SubscriptionButton } from "@/components/dashboard/subscription-button";
@@ -106,6 +107,18 @@ export default async function SettingsPage() {
           </CardHeader>
           <CardContent>
             <DeletePropertyButton propertyId={property.id} />
+          </CardContent>
+        </Card>
+
+        <Card className="border-destructive/50">
+          <CardHeader>
+            <CardTitle className="text-destructive">Delete Account</CardTitle>
+            <CardDescription>
+              Permanently delete your account, subscription, and all data.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <DeleteAccountButton />
           </CardContent>
         </Card>
       </section>

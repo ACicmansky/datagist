@@ -49,3 +49,7 @@
   - **Stripe Portal:** Integrated Customer Portal for billing management.
   - **Navigation:** Shared `DashboardNav` with links to Dashboard and Settings.
   - **Danger Zone:** Property deletion with confirmation.
+- **Lifecycle Management (Phase 10):**
+  - **Cron Logic:** Updated `process-reports` to enforce property limits based on subscription tier (Graceful Degradation).
+  - **Account Deletion:** Implemented full account wipe (Stripe + Supabase) via `deleteUserAccount`.
+  - **UI:** Added "Delete Account" to Settings page with confirmation dialog.

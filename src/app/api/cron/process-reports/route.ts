@@ -26,7 +26,6 @@ export async function GET(request: Request) {
 
   try {
     // 2. Query Due Reports
-    // Find active settings where next_send_at is in the past
     const now = new Date().toISOString();
     const { data: dueReports, error } = await supabaseAdmin
       .from("report_settings")
@@ -36,7 +35,8 @@ export async function GET(request: Request) {
         frequency_days,
         properties!inner (
           id,
-          user_id
+          user_id,
+          created_at
         )
       `)
       .eq("is_active", true)
@@ -51,52 +51,109 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: "No reports due", processed: 0 });
     }
 
-    console.log(`Found ${dueReports.length} reports to process.`);
+    // 3. Group by User
+    const reportsByUser = new Map<string, typeof dueReports>();
+    const userIds = new Set<string>();
 
+    for (const report of dueReports) {
+      // Type assertion for nested property
+      const property = report.properties as unknown as {
+        id: string;
+        user_id: string;
+        created_at: string;
+      };
+      const userId = property.user_id;
+
+      if (!reportsByUser.has(userId)) {
+        reportsByUser.set(userId, []);
+      }
+      reportsByUser.get(userId)?.push(report);
+      userIds.add(userId);
+    }
+
+    // 4. Fetch User Profiles (for Subscription Tier)
+    const { data: profiles, error: profilesError } = await supabaseAdmin
+      .from("profiles")
+      .select("id, subscription_tier")
+      .in("id", Array.from(userIds));
+
+    if (profilesError) {
+      console.error("Error fetching profiles:", profilesError);
+      // Continue but assume 'free' tier for everyone if this fails?
+      // Better to fail safely or log. We'll assume 'free' if profile missing.
+    }
+
+    const userTiers = new Map<string, string>();
+    profiles?.forEach((p) => {
+      userTiers.set(p.id, p.subscription_tier || "free");
+    });
+
+    // 5. Filter & Process
     let processedCount = 0;
     let errorCount = 0;
+    let skippedCount = 0;
 
-    // 3. Process Each Report
-    for (const setting of dueReports) {
-      // Type assertion because Supabase types might be deep
-      const property = setting.properties as unknown as { id: string; user_id: string };
+    for (const [userId, userReports] of reportsByUser) {
+      const tier = userTiers.get(userId) || "free";
+      let allowance = 1; // Default Free
+      if (tier === "pro") allowance = 3;
+      if (tier === "max") allowance = 5;
 
-      try {
-        await processReportForProperty(property.id, property.user_id);
+      // Sort by property creation date (Oldest first)
+      // We want to keep the oldest properties active if they downgrade
+      userReports.sort((a, b) => {
+        const pA = a.properties as unknown as { created_at: string };
+        const pB = b.properties as unknown as { created_at: string };
+        return new Date(pA.created_at).getTime() - new Date(pB.created_at).getTime();
+      });
 
-        // 4. Update Schedule on Success
-        const nextDate = new Date();
-        nextDate.setDate(nextDate.getDate() + (setting.frequency_days || 30));
+      // Take only the allowed number
+      const allowedReports = userReports.slice(0, allowance);
+      const skippedReports = userReports.slice(allowance);
+      skippedCount += skippedReports.length;
 
-        await supabaseAdmin
-          .from("report_settings")
-          .update({
-            last_sent_at: now,
-            next_send_at: nextDate.toISOString(),
-            last_error: null, // Clear previous errors
-          })
-          .eq("id", setting.id);
+      // Process Allowed
+      for (const setting of allowedReports) {
+        const property = setting.properties as unknown as { id: string; user_id: string };
 
-        processedCount++;
-      } catch (err) {
-        console.error(`Failed to process report for property ${property.id}:`, err);
-        errorCount++;
+        try {
+          await processReportForProperty(property.id, property.user_id);
 
-        // Log error to DB
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        await supabaseAdmin
-          .from("report_settings")
-          .update({
-            last_error: errorMessage,
-          })
-          .eq("id", setting.id);
+          // Update Schedule
+          const nextDate = new Date();
+          nextDate.setDate(nextDate.getDate() + (setting.frequency_days || 30));
+
+          await supabaseAdmin
+            .from("report_settings")
+            .update({
+              last_sent_at: now,
+              next_send_at: nextDate.toISOString(),
+              last_error: null,
+            })
+            .eq("id", setting.id);
+
+          processedCount++;
+        } catch (err) {
+          console.error(`Failed to process report for property ${property.id}:`, err);
+          errorCount++;
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          await supabaseAdmin
+            .from("report_settings")
+            .update({ last_error: errorMessage })
+            .eq("id", setting.id);
+        }
       }
     }
+
+    console.log(
+      `Processed: ${processedCount}, Errors: ${errorCount}, Skipped (Limit): ${skippedCount}`
+    );
 
     return NextResponse.json({
       success: true,
       processed: processedCount,
       errors: errorCount,
+      skipped: skippedCount,
     });
   } catch (error) {
     console.error("Cron job failed:", error);

@@ -1,17 +1,6 @@
 # Progress
 
 ## What Works
-# Progress
-
-## What Works
-- [x] Database schema defined (Supabase)
-- [x] Google OAuth Integration (UI & Backend)
-# Progress
-
-## What Works
-# Progress
-
-## What Works
 - [x] Database schema defined (Supabase)
 - [x] Google OAuth Integration (UI & Backend)
 - [x] Property Onboarding Flow (Wizard & Server Actions)
@@ -27,7 +16,9 @@
 - [x] Intelligence Upgrade: Grounding for Pro users
 - [x] Marketing Website: Home, Privacy, Terms
 - [x] User Management: Settings Page, Stripe Portal, Property Deletion
-- [ ] Edge Functions for automated scheduling
+- [x] Cron Functions for automated scheduling (with Limit Enforcement)
+- [x] Account Deletion (Stripe + Supabase)
+- [ ] Pro User property management (select on dashboard, add new)
 
 ## Known Issues
 None currently.
