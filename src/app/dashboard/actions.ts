@@ -194,7 +194,7 @@ export async function generateManualReport(propertyId: string) {
   }
 }
 
-import { createCheckoutSession } from "@/lib/stripe";
+import { createCheckoutSession, createCustomerPortalSession } from "@/lib/stripe";
 
 export async function startSubscription() {
   const supabase = await createClient();
@@ -244,4 +244,128 @@ export async function startSubscription() {
     }
     return { error: "Failed to start subscription." };
   }
+}
+
+export async function manageSubscription() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("stripe_customer_id")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile?.stripe_customer_id) {
+    return { error: "No billing account found." };
+  }
+
+  try {
+    const returnUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+    const session = await createCustomerPortalSession(
+      profile.stripe_customer_id,
+      `${returnUrl}/dashboard/settings`
+    );
+
+    if (!session.url) {
+      throw new Error("Failed to create portal session.");
+    }
+
+    redirect(session.url);
+  } catch (error: unknown) {
+    console.error("Stripe Portal Error:", error);
+    if (error instanceof Error && error.message === "NEXT_REDIRECT") {
+      throw error;
+    }
+    return { error: "Failed to open billing portal." };
+  }
+}
+
+export async function updateReportSettings(
+  propertyId: string,
+  newSettings: Partial<CreateReportSettingsInput>
+) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  // 1. Verify Ownership
+  const { data: property } = await supabase
+    .from("properties")
+    .select("id")
+    .eq("id", propertyId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!property) {
+    return { error: "Property not found or access denied." };
+  }
+
+  // 2. Validate Input
+  const validation = CreateReportSettingsSchema.partial().safeParse(newSettings);
+
+  if (!validation.success) {
+    return { error: `Invalid settings: ${validation.error.message}` };
+  }
+
+  // 3. Update Settings
+  const { error } = await supabase
+    .from("report_settings")
+    .update({
+      ...validation.data,
+    })
+    .eq("property_id", propertyId);
+
+  if (error) {
+    console.error("Error updating settings:", error);
+    return { error: "Failed to update settings." };
+  }
+
+  revalidatePath("/dashboard");
+  return { success: true };
+}
+
+export async function deleteProperty(propertyId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  // 1. Verify Ownership
+  const { data: property } = await supabase
+    .from("properties")
+    .select("id")
+    .eq("id", propertyId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!property) {
+    return { error: "Property not found or access denied." };
+  }
+
+  // 2. Delete Property
+  const { error } = await supabase.from("properties").delete().eq("id", propertyId);
+
+  if (error) {
+    console.error("Error deleting property:", error);
+    return { error: "Failed to delete property." };
+  }
+
+  revalidatePath("/dashboard");
+  return { success: true };
 }
