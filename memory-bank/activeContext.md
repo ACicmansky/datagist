@@ -1,9 +1,4 @@
 ## Completed
-- Stripe Integration: `lib/stripe.ts` for checkout sessions.
-- Webhook Handler: `api/stripe/webhook` handles `checkout.session.completed` using Service Role to bypass RLS.
-- Guardrails: `savePropertyConfiguration` enforces limits (1 property, 30-day frequency) for Free users.
-- UI: `SubscribeButton` and conditional rendering on Dashboard.
-## Completed
 - **Authentication:**
   - Google OAuth with offline access (Refresh Token storage).
   - Login Page and Google Sign-In Button.
@@ -41,3 +36,11 @@
   - `proxy.ts` middleware for route protection and redirects.
   - `src/lib/validations/schemas.ts` for shared Zod schemas.
   - Biome and Vitest configuration.
+  - Stripe Integration: `lib/stripe.ts` for checkout sessions.
+  - Webhook Handler: `api/stripe/webhook` handles `checkout.session.completed` using Service Role to bypass RLS.
+  - Guardrails: `savePropertyConfiguration` enforces limits (1 property, 30-day frequency) for Free users.
+  - UI: `SubscribeButton` and conditional rendering on Dashboard.
+- **Intelligence Upgrade & Marketing (Phase 8):**
+  - **Grounding:** Enabled Google Search Grounding for Pro users in `src/lib/ai.ts`.
+  - **Marketing Website:** Rewrote `src/app/page.tsx` with modern design (Hero, Features, Pricing).
+  - **Legal Pages:** Created `src/app/privacy/page.tsx` and `src/app/terms/page.tsx`.

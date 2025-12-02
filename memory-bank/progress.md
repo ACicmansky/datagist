@@ -24,6 +24,8 @@
 - [x] Email delivery (Resend integration)
 - [x] Monetization: Stripe Integration (Checkout & Webhooks)
 - [x] Guardrails: Usage limits for Free Tier
+- [x] Intelligence Upgrade: Grounding for Pro users
+- [x] Marketing Website: Home, Privacy, Terms
 - [ ] Edge Functions for automated scheduling
 
 ## Known Issues
