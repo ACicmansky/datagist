@@ -44,3 +44,8 @@
   - **Grounding:** Enabled Google Search Grounding for Pro users in `src/lib/ai.ts`.
   - **Marketing Website:** Rewrote `src/app/page.tsx` with modern design (Hero, Features, Pricing).
   - **Legal Pages:** Created `src/app/privacy/page.tsx` and `src/app/terms/page.tsx`.
+- **User Management & Settings (Phase 9):**
+  - **Settings Page:** `/dashboard/settings` for managing subscription and report preferences.
+  - **Stripe Portal:** Integrated Customer Portal for billing management.
+  - **Navigation:** Shared `DashboardNav` with links to Dashboard and Settings.
+  - **Danger Zone:** Property deletion with confirmation.

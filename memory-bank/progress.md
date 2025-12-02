@@ -26,6 +26,7 @@
 - [x] Guardrails: Usage limits for Free Tier
 - [x] Intelligence Upgrade: Grounding for Pro users
 - [x] Marketing Website: Home, Privacy, Terms
+- [x] User Management: Settings Page, Stripe Portal, Property Deletion
 - [ ] Edge Functions for automated scheduling
 
 ## Known Issues
