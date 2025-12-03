@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
-import { stripe } from "@/lib/stripe";
+import { getTierByPriceId, stripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(req: Request) {
@@ -42,7 +42,6 @@ export async function POST(req: Request) {
     const { error } = await createAdminClient()
       .from("profiles")
       .update({
-        subscription_tier: "pro",
         stripe_subscription_id: subscriptionId as string,
         stripe_customer_id: session.customer as string,
       })
@@ -53,7 +52,86 @@ export async function POST(req: Request) {
       return new NextResponse("Database update failed", { status: 500 });
     }
 
-    console.log(`Successfully updated profile for user ${userId} to PRO.`);
+    console.log(`Successfully updated profile for user ${userId}.`);
+  }
+
+  if (event.type === "customer.subscription.updated") {
+    const subscription = event.data.object as Stripe.Subscription;
+    const customerId = subscription.customer as string;
+
+    console.log(`Processing subscription update for Customer: ${customerId}`);
+
+    // Find user by stripe_customer_id
+    const { data: profile, error: fetchError } = await createAdminClient()
+      .from("profiles")
+      .select("id")
+      .eq("stripe_customer_id", customerId)
+      .single();
+
+    if (fetchError || !profile) {
+      console.error("User not found for customer:", customerId);
+      return new NextResponse("User not found", { status: 404 });
+    }
+
+    const status = subscription.status;
+    let tier: "free" | "pro" | "max" = "free";
+
+    if (status === "active" || status === "trialing") {
+      const priceId = subscription.items.data[0].price.id;
+      tier = getTierByPriceId(priceId);
+    } else if (status === "past_due" || status === "unpaid") {
+      // Downgrade to free on payment failure
+      tier = "free";
+    } else {
+      // canceled, incomplete, incomplete_expired, paused
+      tier = "free";
+    }
+
+    const { error: updateError } = await createAdminClient()
+      .from("profiles")
+      .update({
+        subscription_tier: tier,
+      })
+      .eq("id", profile.id);
+
+    if (updateError) {
+      console.error("Error updating profile tier:", updateError);
+      return new NextResponse("Database update failed", { status: 500 });
+    }
+
+    console.log(`Updated user ${profile.id} tier to ${tier} (Status: ${status})`);
+  }
+
+  if (event.type === "customer.subscription.deleted") {
+    const subscription = event.data.object as Stripe.Subscription;
+    const customerId = subscription.customer as string;
+
+    console.log(`Processing subscription deletion for Customer: ${customerId}`);
+
+    const { data: profile, error: fetchError } = await createAdminClient()
+      .from("profiles")
+      .select("id")
+      .eq("stripe_customer_id", customerId)
+      .single();
+
+    if (fetchError || !profile) {
+      console.error("User not found for customer:", customerId);
+      return new NextResponse("User not found", { status: 404 });
+    }
+
+    const { error: updateError } = await createAdminClient()
+      .from("profiles")
+      .update({
+        subscription_tier: "free",
+      })
+      .eq("id", profile.id);
+
+    if (updateError) {
+      console.error("Error updating profile tier:", updateError);
+      return new NextResponse("Database update failed", { status: 500 });
+    }
+
+    console.log(`Downgraded user ${profile.id} to free (Subscription deleted)`);
   }
 
   return new NextResponse(null, { status: 200 });

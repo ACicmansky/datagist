@@ -218,7 +218,7 @@ export async function startSubscription() {
 
   try {
     // TODO: Get Price ID from env or constant
-    const priceId = process.env.STRIPE_PRO_PRICE_ID;
+    const priceId = process.env.STRIPE_PRICE_ID_PRO;
     if (!priceId) {
       throw new Error("Stripe Price ID is not configured.");
     }

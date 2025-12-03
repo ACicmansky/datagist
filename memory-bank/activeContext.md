@@ -56,3 +56,6 @@
 - **Deployment Preparation:**
   - **Admin Client:** Centralized `createAdminClient` in `lib/supabase/admin.ts` for secure backend operations.
   - **Cron Configuration:** Updated `process-reports` route and added `vercel.json` for daily scheduling.
+- **Stripe Integration Hardening:**
+  - **Webhook Logic:** Implemented robust handling for `checkout.session.completed`, `customer.subscription.updated`, and `customer.subscription.deleted`.
+  - **Lifecycle Management:** Automatic tier updates and downgrades based on subscription status.

@@ -39,3 +39,13 @@ export async function createCustomerPortalSession(customerId: string, returnUrl:
 
   return session;
 }
+
+export function getTierByPriceId(priceId: string): "free" | "pro" | "max" {
+  if (priceId === process.env.STRIPE_PRICE_ID_PRO) {
+    return "pro";
+  }
+  if (priceId === process.env.STRIPE_PRICE_ID_MAX) {
+    return "max";
+  }
+  return "free";
+}
