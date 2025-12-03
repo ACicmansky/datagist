@@ -18,6 +18,7 @@
 - [x] User Management: Settings Page, Stripe Portal, Property Deletion
 - [x] Cron Functions for automated scheduling (with Limit Enforcement)
 - [x] Account Deletion (Stripe + Supabase)
+- [x] Deployment Configuration (Admin Client, Vercel Cron)
 - [ ] Pro User property management (select on dashboard, add new)
 
 ## Known Issues

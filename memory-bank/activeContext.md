@@ -53,3 +53,6 @@
   - **Cron Logic:** Updated `process-reports` to enforce property limits based on subscription tier (Graceful Degradation).
   - **Account Deletion:** Implemented full account wipe (Stripe + Supabase) via `deleteUserAccount`.
   - **UI:** Added "Delete Account" to Settings page with confirmation dialog.
+- **Deployment Preparation:**
+  - **Admin Client:** Centralized `createAdminClient` in `lib/supabase/admin.ts` for secure backend operations.
+  - **Cron Configuration:** Updated `process-reports` route and added `vercel.json` for daily scheduling.
