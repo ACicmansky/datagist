@@ -1,27 +1,12 @@
-import { createClient } from "@supabase/supabase-js";
 import { generateInsight } from "@/lib/ai";
 import { sendReportEmail } from "@/lib/email";
 import { fetchReportData } from "@/lib/ga4";
 import { renderEmailTemplate } from "@/lib/renderers/email-renderer";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !supabaseServiceKey) {
-  throw new Error("Missing Supabase environment variables for admin client");
-}
-
-// Create a Supabase client with the Service Role Key to bypass RLS.
-// This is necessary because this function runs in a background cron job where no user session exists.
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-});
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function processReportForProperty(propertyId: string, userId: string) {
   console.log(`Processing report for property: ${propertyId}, user: ${userId}`);
+  const supabaseAdmin = createAdminClient();
 
   // 1. Fetch Property & Profile (for Refresh Token)
   // We use the admin client to bypass RLS

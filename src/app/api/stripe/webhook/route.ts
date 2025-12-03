@@ -1,7 +1,7 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(req: Request) {
   const body = await req.text();
@@ -38,24 +38,8 @@ export async function POST(req: Request) {
 
     console.log(`Processing subscription for User: ${userId}, Subscription: ${subscriptionId}`);
 
-    // Use Service Role Key to bypass RLS
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      console.error("Missing Supabase URL or Service Role Key");
-      return new NextResponse("Missing Supabase URL or Service Role Key", { status: 500 });
-    }
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      }
-    );
-
     // Update profile
-    const { error } = await supabaseAdmin
+    const { error } = await createAdminClient()
       .from("profiles")
       .update({
         subscription_tier: "pro",

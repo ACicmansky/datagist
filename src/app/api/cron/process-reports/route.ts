@@ -1,21 +1,9 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { processReportForProperty } from "@/lib/services/report-generator";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !supabaseServiceKey) {
-  throw new Error("Missing Supabase environment variables for admin client");
-}
+import { createAdminClient } from "@/lib/supabase/admin";
 
 // Create a Supabase client with the Service Role Key to bypass RLS.
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-});
+const supabaseAdmin = createAdminClient();
 
 export async function GET(request: Request) {
   // 1. Security Check

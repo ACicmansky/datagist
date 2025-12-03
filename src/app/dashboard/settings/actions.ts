@@ -1,7 +1,7 @@
 "use server";
 
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { stripe } from "@/lib/stripe";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
 export async function deleteUserAccount() {
@@ -35,7 +35,7 @@ export async function deleteUserAccount() {
   // 3. Delete Supabase User
   // We need the Service Role key to delete a user from auth.users
   // The standard client cannot delete itself usually, or we use the admin API.
-  const supabaseAdmin = await createAdminClient();
+  const supabaseAdmin = createAdminClient();
   const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user.id);
 
   if (deleteError) {
@@ -47,20 +47,4 @@ export async function deleteUserAccount() {
   await supabase.auth.signOut();
 
   return { success: true };
-}
-
-async function createAdminClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error("Missing Supabase environment variables");
-  }
-
-  return createSupabaseClient(supabaseUrl, supabaseServiceKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
 }
