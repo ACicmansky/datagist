@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { deleteProperty } from "@/app/dashboard/actions";
+import { deleteProperty } from "@/app/dashboard/settings/actions";
 import {
   AlertDialog,
   AlertDialogAction,

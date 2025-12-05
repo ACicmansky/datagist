@@ -2,8 +2,8 @@ import { redirect } from "next/navigation";
 
 import { DeleteAccountButton } from "@/components/dashboard/delete-account-button";
 import { DeletePropertyButton } from "@/components/dashboard/delete-property-button";
+import { SubscriptionPlans } from "@/components/dashboard/settings/subscription-plans";
 import { SettingsForm } from "@/components/dashboard/settings-form";
-import { SubscriptionButton } from "@/components/dashboard/subscription-button";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -58,21 +58,7 @@ export default async function SettingsPage() {
       {/* Section 1: Subscription */}
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">Subscription</h2>
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              Current Plan: {profile?.subscription_tier?.toUpperCase() || "FREE"}
-            </CardTitle>
-            <CardDescription>
-              {isPro
-                ? "You are on the Pro plan. Enjoy weekly reports and AI recommendations."
-                : "You are on the Free plan. Upgrade to unlock weekly reports and AI recommendations."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <SubscriptionButton isPro={isPro} />
-          </CardContent>
-        </Card>
+        <SubscriptionPlans currentTier={profile?.subscription_tier || "free"} />
       </section>
 
       <Separator />

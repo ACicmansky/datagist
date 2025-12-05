@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { updateReportSettings } from "@/app/dashboard/actions";
+import { updateReportSettings } from "@/app/dashboard/settings/actions";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {

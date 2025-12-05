@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { startSubscription } from "@/app/dashboard/actions";
+import { startSubscription } from "@/app/dashboard/settings/actions";
 import { Button } from "@/components/ui/button";
 
 export function SubscribeButton() {
@@ -9,7 +9,8 @@ export function SubscribeButton() {
 
   const handleSubscribe = () => {
     startTransition(async () => {
-      const result = await startSubscription();
+      const priceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_PRO || "";
+      const result = await startSubscription(priceId);
       if (result?.error) {
         alert(result.error);
       }
